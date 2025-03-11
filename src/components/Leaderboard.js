@@ -3,6 +3,7 @@ import styled from "styled-components"
 import { db } from "../firebase"
 import { collection, query, orderBy, getDocs, limit } from "firebase/firestore"
 import { FaTrophy, FaMedal } from "react-icons/fa"
+import { getUserProfile } from "../utils/userUtils"
 
 const LeaderboardContainer = styled.div`
 	width: 100%;
@@ -110,19 +111,47 @@ function Leaderboard() {
 	useEffect(() => {
 		const fetchLeaderboardData = async () => {
 			try {
-				const testResultsRef = collection(db, "testResults")
-				const q = query(testResultsRef, orderBy("wpm", "desc"), limit(50))
+				setLoading(true)
+
+				// First, get all test results
+				const testResultsRef = collection(db, "tests")
+				const q = query(testResultsRef, orderBy("wpm", "desc"))
 				const querySnapshot = await getDocs(q)
 
-				const data = []
-				querySnapshot.forEach((doc) => {
-					data.push({
-						id: doc.id,
-						...doc.data(),
-					})
-				})
+				// Use a map to track the best score for each user
+				const userBestScores = new Map()
 
-				setLeaderboardData(data)
+				for (const doc of querySnapshot.docs) {
+					const data = doc.data()
+					const userId = data.userId
+
+					// Skip entries without userId
+					if (!userId) continue
+
+					// If we haven't seen this user, or if this score is better than their previous best
+					if (
+						!userBestScores.has(userId) ||
+						data.wpm > userBestScores.get(userId).wpm
+					) {
+						// Get user profile to get the username
+						const userProfile = await getUserProfile(userId)
+						userBestScores.set(userId, {
+							id: doc.id,
+							userId: userId,
+							wpm: data.wpm,
+							accuracy: data.accuracy,
+							username: userProfile?.username || "Anonymous",
+						})
+					}
+				}
+
+				// Convert map to array and sort by WPM
+				const data = Array.from(userBestScores.values()).sort(
+					(a, b) => b.wpm - a.wpm
+				)
+
+				// Limit to top 50
+				setLeaderboardData(data.slice(0, 50))
 			} catch (error) {
 				console.error("Error fetching leaderboard data:", error)
 			} finally {

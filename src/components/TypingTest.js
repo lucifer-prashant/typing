@@ -329,10 +329,12 @@ const TypingTest = ({ onTestComplete }) => {
 
 	const saveResultsToFirebase = async (results) => {
 		try {
-			await addDoc(collection(db, "testResults"), {
-				username: currentUser.email
-					? currentUser.email.split("@")[0]
-					: "Anonymous",
+			await addDoc(collection(db, "tests"), {
+				username:
+					currentUser.displayName ||
+					(currentUser.email ? currentUser.email.split("@")[0] : "Anonymous"),
+				displayName: currentUser.displayName,
+				email: currentUser.email,
 				userId: currentUser.uid,
 				timestamp: serverTimestamp(),
 				...results,
