@@ -131,6 +131,14 @@ const ErrorMessage = styled.p`
 	font-size: 0.9rem;
 `
 
+const SuccessMessage = styled.p`
+	color: #4caf50;
+	margin-top: 8px;
+	font-size: 0.9rem;
+	opacity: ${props => props.$visible ? 1 : 0};
+	transition: opacity 0.3s ease-in-out;
+`
+
 const Settings = ({ onClose }) => {
 	const { theme, setTheme, availableThemes } = useTheme()
 	const { currentUser } = useAuth()
@@ -138,6 +146,7 @@ const Settings = ({ onClose }) => {
 	const [keyboardSoundsEnabled, setKeyboardSoundsEnabled] = useState(true)
 	const [username, setUsername] = useState("")
 	const [error, setError] = useState("")
+	const [showSuccess, setShowSuccess] = useState(false)
 	const containerRef = useRef(null)
 
 	useEffect(() => {
@@ -155,11 +164,14 @@ const Settings = ({ onClose }) => {
 	const handleUsernameChange = async () => {
 		try {
 			setError("")
+			setShowSuccess(false)
 			if (!username.trim()) {
 				setError("Username cannot be empty")
 				return
 			}
 			await updateUserProfile(currentUser.uid, username.trim())
+			setShowSuccess(true)
+			setTimeout(() => setShowSuccess(false), 3000) // Hide success message after 3 seconds
 		} catch (error) {
 			setError(error.message)
 		}
@@ -225,16 +237,11 @@ const Settings = ({ onClose }) => {
 						type="text"
 						value={username}
 						onChange={(e) => setUsername(e.target.value)}
-						placeholder="Enter username"
-						onBlur={handleUsernameChange}
-						onKeyDown={(e) => {
-							if (e.key === 'Enter') {
-								e.preventDefault()
-								handleUsernameChange()
-							}
-						}}
+						onKeyPress={(e) => e.key === "Enter" && handleUsernameChange()}
+						placeholder="Enter your username"
 					/>
 					{error && <ErrorMessage>{error}</ErrorMessage>}
+					<SuccessMessage $visible={showSuccess}>Username updated successfully!</SuccessMessage>
 				</SettingsSection>
 			)}
 		</SettingsContainer>

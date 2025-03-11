@@ -3,6 +3,7 @@ import styled from "styled-components"
 import { useAuth } from "../contexts/AuthContext"
 import { db } from "../firebase"
 import { collection, addDoc, serverTimestamp } from "firebase/firestore"
+import { generate } from "random-words"
 
 const TypingTestContainer = styled.div`
 	display: flex;
@@ -19,11 +20,27 @@ const TestHeader = styled.div`
 	justify-content: space-between;
 	width: 100%;
 	margin-bottom: 20px;
+	padding: 0; /* Remove any padding */
 `
 
 const TestOptions = styled.div`
 	display: flex;
+	gap: 20px;
+	flex-wrap: wrap;
+	width: 100%;
+	margin-bottom: 20px;
+`
+
+const OptionGroup = styled.div`
+	display: flex;
 	gap: 10px;
+	align-items: center;
+	flex-wrap: wrap;
+`
+
+const OptionLabel = styled.span`
+	color: #888;
+	font-size: 14px;
 `
 
 const OptionButton = styled.button`
@@ -42,10 +59,39 @@ const OptionButton = styled.button`
 	}
 `
 
+const CustomInput = styled.input`
+	background-color: #1a1a1a;
+	color: white;
+	border: 1px solid #333;
+	border-radius: 4px;
+	padding: 8px 12px;
+	width: 80px;
+	font-size: 14px;
+
+	&:focus {
+		border-color: #646cff;
+		outline: none;
+	}
+
+	&::-webkit-inner-spin-button,
+	&::-webkit-outer-spin-button {
+		-webkit-appearance: none;
+		margin: 0;
+	}
+`
+
 const Timer = styled.div`
 	font-size: 24px;
 	font-weight: bold;
 	color: #646cff;
+	display: flex;
+	align-items: center;
+	justify-content: flex-end;
+	padding-right: 0; /* Remove any right padding */
+	margin-right: 0; /* Remove any right margin */
+	text-align: right; /* Ensure text is right-aligned */
+	width: auto; /* Let it take the space it needs */
+	min-width: 100px; /* Ensure consistent width */
 `
 
 const TextDisplay = styled.div`
@@ -57,13 +103,56 @@ const TextDisplay = styled.div`
 	font-family: "Roboto Mono", monospace;
 	font-size: 20px;
 	line-height: 1.6;
-	height: 150px;
+	height: 120px;
 	overflow: hidden;
 	position: relative;
+	display: flex;
+	flex-wrap: wrap;
+	align-content: flex-start;
+	gap: 8px;
+	transition: all 0.3s ease;
+	cursor: text;
+
+	/* The entire component gets these effects based on focus state */
+	opacity: ${(props) => (props.$isFocused ? 1 : 0.3)};
+	filter: ${(props) => (props.$isFocused ? "none" : "blur(2px)")};
+
+	&:focus-within {
+		outline: 2px solid #646cff;
+		opacity: 1;
+		filter: none;
+	}
+`
+
+const FocusMessage = styled.div`
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	transform: translate(-50%, -50%);
+	color: #888;
+	font-size: 16px;
+	pointer-events: none;
+	z-index: 5;
+	filter: none !important;
+	opacity: ${(props) => (props.show ? 1 : 0)} !important;
+	text-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+`
+
+const ProgressIndicator = styled.div`
+	position: absolute;
+	top: 10px;
+	right: 10px;
+	color: #646cff;
+	font-size: 16px;
+	font-weight: bold;
 `
 
 const Word = styled.span`
+	display: inline-flex;
+	position: relative;
 	margin-right: 8px;
+	height: 32px;
+	align-items: center;
 `
 
 const Character = styled.span`
@@ -73,11 +162,21 @@ const Character = styled.span`
 		if (props.status === "current") return "#646cff"
 		return "#888"
 	}};
-	text-decoration: ${(props) =>
-		props.status === "incorrect" ? "underline" : "none"};
+	position: relative;
 	font-weight: ${(props) => (props.status === "current" ? "bold" : "normal")};
-	animation: ${(props) =>
-		props.status === "current" ? "blink 1s infinite" : "none"};
+
+	&::after {
+		content: "";
+		position: absolute;
+		left: 0;
+		bottom: -2px;
+		width: 100%;
+		height: 2px;
+		background-color: ${(props) =>
+			props.status === "current" ? "#646cff" : "transparent"};
+		animation: ${(props) =>
+			props.status === "current" ? "blink 1s infinite" : "none"};
+	}
 
 	@keyframes blink {
 		50% {
@@ -86,19 +185,32 @@ const Character = styled.span`
 	}
 `
 
-const InputField = styled.input`
-	width: 100%;
-	padding: 15px;
-	background-color: #1a1a1a;
-	border: 2px solid #333;
-	border-radius: 8px;
-	color: white;
-	font-size: 18px;
-	font-family: "Roboto Mono", monospace;
-	outline: none;
+const HiddenInput = styled.input`
+	position: absolute;
+	left: -9999px;
+	width: 1px;
+	height: 1px;
+	overflow: hidden;
+`
 
-	&:focus {
-		border-color: #646cff;
+const RestartIcon = styled.button`
+	background-color: transparent;
+	color: #646cff;
+	border: none;
+	cursor: pointer;
+	font-size: 24px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	margin-top: 20px;
+	transition: transform 0.2s ease;
+
+	&:hover {
+		transform: rotate(180deg);
+	}
+
+	&::before {
+		content: "↻";
 	}
 `
 
@@ -118,124 +230,23 @@ const RestartButton = styled.button`
 	}
 `
 
-// List of common English words for typing test
-const commonWords = [
-	"the",
-	"be",
-	"to",
-	"of",
-	"and",
-	"a",
-	"in",
-	"that",
-	"have",
-	"I",
-	"it",
-	"for",
-	"not",
-	"on",
-	"with",
-	"he",
-	"as",
-	"you",
-	"do",
-	"at",
-	"this",
-	"but",
-	"his",
-	"by",
-	"from",
-	"they",
-	"we",
-	"say",
-	"her",
-	"she",
-	"or",
-	"an",
-	"will",
-	"my",
-	"one",
-	"all",
-	"would",
-	"there",
-	"their",
-	"what",
-	"so",
-	"up",
-	"out",
-	"if",
-	"about",
-	"who",
-	"get",
-	"which",
-	"go",
-	"me",
-	"when",
-	"make",
-	"can",
-	"like",
-	"time",
-	"no",
-	"just",
-	"him",
-	"know",
-	"take",
-	"people",
-	"into",
-	"year",
-	"your",
-	"good",
-	"some",
-	"could",
-	"them",
-	"see",
-	"other",
-	"than",
-	"then",
-	"now",
-	"look",
-	"only",
-	"come",
-	"its",
-	"over",
-	"think",
-	"also",
-	"back",
-	"after",
-	"use",
-	"two",
-	"how",
-	"our",
-	"work",
-	"first",
-	"well",
-	"way",
-	"even",
-	"new",
-	"want",
-	"because",
-	"any",
-	"these",
-	"give",
-	"day",
-	"most",
-	"us",
-]
-
-// Generate a list of random English words
-const generateWordList = (count) => {
-	const result = []
-	for (let i = 0; i < count; i++) {
-		const randomIndex = Math.floor(Math.random() * commonWords.length)
-		result.push(commonWords[randomIndex])
+// Generate random words for typing test based on difficulty
+const generateWords = (count = 50, difficulty = "medium") => {
+	const options = {
+		exactly: count,
+		maxLength: difficulty === "easy" ? 5 : difficulty === "medium" ? 8 : 12,
+		minLength: difficulty === "easy" ? 2 : difficulty === "medium" ? 4 : 6,
 	}
-	return result
+	return generate(options)
 }
 
 const TypingTest = ({ onTestComplete }) => {
 	const [testType, setTestType] = useState("time") // 'time' or 'words'
 	const [testDuration, setTestDuration] = useState(30) // seconds
 	const [wordCount, setWordCount] = useState(25) // number of words
+	const [customValue, setCustomValue] = useState("") // custom time/word value
+	const [difficulty, setDifficulty] = useState("medium") // 'easy', 'medium', 'hard'
+	const [activeOptionGroup, setActiveOptionGroup] = useState("difficulty") // 'difficulty', 'time', 'words'
 	const [words, setWords] = useState([])
 	const [currentWordIndex, setCurrentWordIndex] = useState(0)
 	const [currentInput, setCurrentInput] = useState("")
@@ -246,6 +257,7 @@ const TypingTest = ({ onTestComplete }) => {
 	const [typedCharacters, setTypedCharacters] = useState([])
 	const [errorCount, setErrorCount] = useState(0)
 	const [errorMap, setErrorMap] = useState({})
+	const [isFocused, setIsFocused] = useState(true)
 
 	const inputRef = useRef(null)
 	const { currentUser } = useAuth()
@@ -253,16 +265,15 @@ const TypingTest = ({ onTestComplete }) => {
 	// Initialize test
 	useEffect(() => {
 		resetTest()
-	}, [testType, testDuration, wordCount])
+	}, [testType, testDuration, wordCount, difficulty])
 
-	// Timer and progress logic
+	// Timer countdown effect
 	useEffect(() => {
-		let interval
+		let timerInterval
 		if (testActive && testType === "time" && timeLeft > 0) {
-			interval = setInterval(() => {
+			timerInterval = setInterval(() => {
 				setTimeLeft((prev) => {
 					if (prev <= 1) {
-						clearInterval(interval)
 						endTest()
 						return 0
 					}
@@ -270,13 +281,14 @@ const TypingTest = ({ onTestComplete }) => {
 				})
 			}, 1000)
 		}
-		return () => clearInterval(interval)
-	}, [testActive, timeLeft, testType, testDuration])
+		return () => clearInterval(timerInterval)
+	}, [testActive, testType, timeLeft])
 
 	const resetTest = () => {
-		// Generate more words than needed to ensure we don't run out
-		const generatedWords = generateWordList(
-			testType === "words" ? wordCount * 2 : 100
+		// Generate exactly the number of words requested
+		const generatedWords = generateWords(
+			testType === "words" ? wordCount : 100,
+			difficulty
 		)
 		setWords(generatedWords)
 		setCurrentWordIndex(0)
@@ -295,6 +307,7 @@ const TypingTest = ({ onTestComplete }) => {
 		if (!testActive && !testComplete) {
 			setStartTime(Date.now())
 			setTestActive(true)
+			setTimeLeft(testType === "time" ? testDuration : null)
 			inputRef.current.focus()
 		}
 	}
@@ -347,9 +360,12 @@ const TypingTest = ({ onTestComplete }) => {
 	const handleInputChange = (e) => {
 		const value = e.target.value
 
-		// Start the test on first input
+		// Start the test immediately on first keypress
 		if (!testActive && !testComplete) {
 			startTest()
+			// Set the current input to the first character
+			setCurrentInput(value)
+			return
 		}
 
 		// If test is active
@@ -395,6 +411,14 @@ const TypingTest = ({ onTestComplete }) => {
 				setCurrentWordIndex((prev) => {
 					const nextIndex = prev + 1
 
+					// Auto-scroll when reaching the end of a line (approximately every 10 words)
+					if (nextIndex % 10 === 0) {
+						const textDisplay = document.querySelector(TextDisplay)
+						if (textDisplay) {
+							textDisplay.style.transform = `translateY(-${Math.floor(nextIndex / 10) * 40}px)`
+						}
+					}
+
 					return nextIndex
 				})
 				setCurrentInput("")
@@ -413,145 +437,251 @@ const TypingTest = ({ onTestComplete }) => {
 	}
 
 	const calculateWPM = () => {
-		if (!startTime) return 0
+		if (!startTime || !testActive) return 0
 
-		const timeInMinutes = (Date.now() - startTime) / 1000 / 60
-		// Use the number of completed words (currentWordIndex)
-		const wordsTyped = currentWordIndex
+		// Ensure we have a valid time measurement
+		const elapsedMs = Date.now() - startTime
+		if (elapsedMs <= 0) return 0
 
-		return Math.round(wordsTyped / timeInMinutes)
+		const timeInMinutes = elapsedMs / 60000 // Convert ms to minutes
+
+		// Count correct characters (including spaces)
+		// Add space characters for completed words
+		const correctCharacters =
+			typedCharacters.filter((char) => char.correct).length +
+			(currentWordIndex > 0 ? currentWordIndex - 1 : 0)
+
+		// Use standard WPM formula: (characters / 5) / time
+		// The division by 5 is the standard way to convert characters to words
+		return Math.max(1, Math.round(correctCharacters / 5 / timeInMinutes))
+	}
+
+	const calculateRawWPM = () => {
+		if (!startTime || !testActive) return 0
+
+		// Ensure we have a valid time measurement
+		const elapsedMs = Date.now() - startTime
+		if (elapsedMs <= 0) return 0
+
+		const timeInMinutes = elapsedMs / 60000 // Convert ms to minutes
+
+		// Count all typed characters (including spaces for completed words)
+		const totalCharacters =
+			typedCharacters.length + (currentWordIndex > 0 ? currentWordIndex - 1 : 0)
+
+		// Use standard WPM formula: (characters / 5) / time
+		return Math.max(1, Math.round(totalCharacters / 5 / timeInMinutes))
 	}
 
 	const calculateAccuracy = () => {
 		if (typedCharacters.length === 0) return 100
-
-		const correctChars = typedCharacters.filter((char) => char.correct).length
-		return Math.round((correctChars / typedCharacters.length) * 100)
+		const correctCharacters = typedCharacters.filter(
+			(char) => char.correct
+		).length
+		return Math.round((correctCharacters / typedCharacters.length) * 100)
 	}
 
-	const calculateRawWPM = () => {
-		if (!startTime) return 0
-
-		const timeInMinutes = (Date.now() - startTime) / 1000 / 60
-		const charsTyped = typedCharacters.length / 5 // Standard: 5 chars = 1 word
-
-		return Math.round(charsTyped / timeInMinutes)
+	const handleCustomValueChange = (e) => {
+		const value = parseInt(e.target.value) || ""
+		setCustomValue(value)
+		if (value > 0) {
+			if (testType === "time") {
+				setTestDuration(value)
+			} else {
+				setWordCount(value)
+			}
+		}
 	}
 
-	const renderWords = () => {
-		return words
-			.slice(currentWordIndex, currentWordIndex + 15)
-			.map((word, wordIndex) => {
-				const isCurrentWord = wordIndex === 0
-
-				if (!isCurrentWord) {
-					return <Word key={wordIndex}>{word}</Word>
-				}
-
-				// Render current word with character highlighting
-				return (
-					<Word key={wordIndex}>
-						{word.split("").map((char, charIndex) => {
-							let status = "inactive"
-
-							if (charIndex < currentInput.length) {
-								status =
-									currentInput[charIndex] === char ? "correct" : "incorrect"
-							} else if (charIndex === currentInput.length) {
-								status = "current"
-							}
-
-							return (
-								<Character key={charIndex} status={status}>
-									{char}
-								</Character>
-							)
-						})}
-					</Word>
-				)
-			})
+	const handleTextDisplayClick = () => {
+		inputRef.current.focus()
+		setIsFocused(true)
 	}
 
-	const handleTimeOptionClick = (seconds) => {
-		setTestType("time")
-		setTestDuration(seconds)
+	const handleInputBlur = () => {
+		setIsFocused(false)
 	}
 
-	const handleWordOptionClick = (count) => {
-		setTestType("words")
-		setWordCount(count)
+	const handleInputFocus = () => {
+		setIsFocused(true)
+	}
+
+	useEffect(() => {
+		// Auto-focus the input on component mount
+		if (inputRef.current) {
+			inputRef.current.focus()
+		}
+	}, [])
+
+	const handleRestart = () => {
+		resetTest()
 	}
 
 	return (
 		<TypingTestContainer>
 			<TestHeader>
 				<TestOptions>
-					<div>
-						<span>Time: </span>
+					<OptionGroup>
 						<OptionButton
-							$active={testType === "time" && testDuration === 10}
-							onClick={() => handleTimeOptionClick(10)}>
-							10s
+							active={activeOptionGroup === "difficulty"}
+							onClick={() => setActiveOptionGroup("difficulty")}>
+							{activeOptionGroup === "difficulty"
+								? "Difficulty"
+								: difficulty.charAt(0).toUpperCase() + difficulty.slice(1)}
+						</OptionButton>
+						{activeOptionGroup === "difficulty" && (
+							<>
+								<OptionButton
+									active={difficulty === "easy"}
+									onClick={() => setDifficulty("easy")}>
+									Easy
+								</OptionButton>
+								<OptionButton
+									active={difficulty === "medium"}
+									onClick={() => setDifficulty("medium")}>
+									Medium
+								</OptionButton>
+								<OptionButton
+									active={difficulty === "hard"}
+									onClick={() => setDifficulty("hard")}>
+									Hard
+								</OptionButton>
+							</>
+						)}
+					</OptionGroup>
+
+					<OptionGroup>
+						<OptionButton
+							active={activeOptionGroup === "time"}
+							onClick={() => {
+								setActiveOptionGroup("time")
+								setTestType("time")
+							}}>
+							Time
 						</OptionButton>
 						<OptionButton
-							$active={testType === "time" && testDuration === 30}
-							onClick={() => handleTimeOptionClick(30)}>
-							30s
+							active={activeOptionGroup === "words"}
+							onClick={() => {
+								setActiveOptionGroup("words")
+								setTestType("words")
+							}}>
+							Words
 						</OptionButton>
-						<OptionButton
-							$active={testType === "time" && testDuration === 60}
-							onClick={() => handleTimeOptionClick(60)}>
-							60s
-						</OptionButton>
-					</div>
-					<div>
-						<span>Words: </span>
-						<OptionButton
-							$active={testType === "words" && wordCount === 10}
-							onClick={() => handleWordOptionClick(10)}>
-							10
-						</OptionButton>
-						<OptionButton
-							$active={testType === "words" && wordCount === 25}
-							onClick={() => handleWordOptionClick(25)}>
-							25
-						</OptionButton>
-						<OptionButton
-							$active={testType === "words" && wordCount === 50}
-							onClick={() => handleWordOptionClick(50)}>
-							50
-						</OptionButton>
-						<OptionButton
-							$active={testType === "words" && wordCount === 100}
-							onClick={() => handleWordOptionClick(100)}>
-							100
-						</OptionButton>
-					</div>
+					</OptionGroup>
+
+					{activeOptionGroup === "time" && (
+						<OptionGroup>
+							<OptionLabel>Duration:</OptionLabel>
+							<OptionButton
+								active={testDuration === 15}
+								onClick={() => setTestDuration(15)}>
+								15s
+							</OptionButton>
+							<OptionButton
+								active={testDuration === 30}
+								onClick={() => setTestDuration(30)}>
+								30s
+							</OptionButton>
+							<OptionButton
+								active={testDuration === 60}
+								onClick={() => setTestDuration(60)}>
+								60s
+							</OptionButton>
+							<OptionButton
+								active={testDuration === 120}
+								onClick={() => setTestDuration(120)}>
+								120s
+							</OptionButton>
+							<CustomInput
+								type="number"
+								placeholder="Custom"
+								value={customValue}
+								onChange={handleCustomValueChange}
+								min="1"
+								max="999"
+							/>
+						</OptionGroup>
+					)}
+
+					{activeOptionGroup === "words" && (
+						<OptionGroup>
+							<OptionLabel>Words:</OptionLabel>
+							<OptionButton
+								active={wordCount === 25}
+								onClick={() => setWordCount(25)}>
+								25
+							</OptionButton>
+							<OptionButton
+								active={wordCount === 50}
+								onClick={() => setWordCount(50)}>
+								50
+							</OptionButton>
+							<OptionButton
+								active={wordCount === 100}
+								onClick={() => setWordCount(100)}>
+								100
+							</OptionButton>
+							<CustomInput
+								type="number"
+								placeholder="Custom"
+								value={customValue}
+								onChange={handleCustomValueChange}
+								min="1"
+								max="999"
+							/>
+						</OptionGroup>
+					)}
 				</TestOptions>
 				<Timer>
 					{testType === "time"
-						? `${timeLeft || testDuration}s`
+						? timeLeft !== null && `${timeLeft}s`
 						: `${currentWordIndex}/${wordCount} words`}
 				</Timer>
 			</TestHeader>
 
-			<TextDisplay onClick={() => inputRef.current.focus()}>
-				{renderWords()}
+			<TextDisplay
+				className="text-display"
+				onClick={handleTextDisplayClick}
+				$isFocused={isFocused} // Pass the isFocused state to the styled component
+			>
+				<FocusMessage show={!isFocused}>Click here to focus</FocusMessage>
+				{words
+					.slice(currentWordIndex, currentWordIndex + 30)
+					.map((word, index) => (
+						<Word key={index}>
+							{word.split("").map((char, charIndex) => {
+								let status = "default"
+								if (index === 0) {
+									if (charIndex < currentInput.length) {
+										status =
+											currentInput[charIndex] === char ? "correct" : "incorrect"
+									} else if (charIndex === currentInput.length) {
+										status = "current"
+									}
+								}
+								return (
+									<Character key={charIndex} status={status}>
+										{char}
+									</Character>
+								)
+							})}
+						</Word>
+					))}
 			</TextDisplay>
 
-			<InputField
+			<HiddenInput
 				ref={inputRef}
 				type="text"
 				value={currentInput}
 				onChange={handleInputChange}
-				placeholder={
-					testActive ? "Type here..." : "Click or press any key to start..."
-				}
+				onBlur={handleInputBlur}
+				onFocus={handleInputFocus}
 				disabled={testComplete}
+				autoFocus
 			/>
 
-			{testComplete && (
-				<RestartButton onClick={resetTest}>Start New Test</RestartButton>
+			{(testComplete || testActive) && (
+				<RestartButton onClick={handleRestart}>Restart Test</RestartButton>
 			)}
 		</TypingTestContainer>
 	)
