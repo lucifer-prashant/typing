@@ -113,29 +113,21 @@ const TextDisplay = styled.div`
 	transition: all 0.3s ease;
 	cursor: text;
 
-	/* The entire component gets these effects based on focus state */
-	opacity: ${(props) => (props.$isFocused ? 1 : 0.3)};
-	filter: ${(props) => (props.$isFocused ? "none" : "blur(2px)")};
+	/* Apply blur effect when not focused */
+	filter: ${(props) => (props.$isFocused ? "none" : "blur(4px)")};
 
 	&:focus-within {
 		outline: 2px solid #646cff;
-		opacity: 1;
-		filter: none;
 	}
 `
 
 const FocusMessage = styled.div`
-	position: absolute;
-	top: 50%;
-	left: 50%;
-	transform: translate(-50%, -50%);
 	color: #888;
 	font-size: 16px;
-	pointer-events: none;
-	z-index: 5;
-	filter: none !important;
-	opacity: ${(props) => (props.show ? 1 : 0)} !important;
-	text-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+	margin-top: 10px;
+	text-align: center;
+	opacity: ${(props) => (props.$show ? 1 : 0)};
+	transition: opacity 0.3s ease;
 `
 
 const ProgressIndicator = styled.div`
@@ -231,13 +223,34 @@ const RestartButton = styled.button`
 `
 
 // Generate random words for typing test based on difficulty
-const generateWords = (count = 50, difficulty = "medium") => {
+const generateWords = (
+	count = 50,
+	difficulty = "medium",
+	includePunctuation = false
+) => {
 	const options = {
 		exactly: count,
 		maxLength: difficulty === "easy" ? 5 : difficulty === "medium" ? 8 : 12,
 		minLength: difficulty === "easy" ? 2 : difficulty === "medium" ? 4 : 6,
 	}
-	return generate(options)
+	let words = generate(options)
+	if (includePunctuation) {
+		words = words.map((word, index) => {
+			// Capitalize ~30% of words
+			const shouldCapitalize = Math.random() < 0.3
+			const capitalizedWord = shouldCapitalize
+				? word.charAt(0).toUpperCase() + word.slice(1)
+				: word
+			// Add comma after ~20% of words, and period after ~15% of words, but not at the end of the text
+			const shouldAddComma = Math.random() < 0.2 && index < words.length - 1
+			const shouldAddPeriod = Math.random() < 0.15 && index < words.length - 1
+			if (shouldAddPeriod) {
+				return capitalizedWord + "."
+			}
+			return shouldAddComma ? capitalizedWord + "," : capitalizedWord
+		})
+	}
+	return words
 }
 
 const TypingTest = ({ onTestComplete }) => {
@@ -247,6 +260,7 @@ const TypingTest = ({ onTestComplete }) => {
 	const [customValue, setCustomValue] = useState("") // custom time/word value
 	const [difficulty, setDifficulty] = useState("medium") // 'easy', 'medium', 'hard'
 	const [activeOptionGroup, setActiveOptionGroup] = useState("difficulty") // 'difficulty', 'time', 'words'
+	const [includePunctuation, setIncludePunctuation] = useState(false)
 	const [words, setWords] = useState([])
 	const [currentWordIndex, setCurrentWordIndex] = useState(0)
 	const [currentInput, setCurrentInput] = useState("")
@@ -262,10 +276,10 @@ const TypingTest = ({ onTestComplete }) => {
 	const inputRef = useRef(null)
 	const { currentUser } = useAuth()
 
-	// Initialize test
+	// Initialize test and update words when settings change
 	useEffect(() => {
 		resetTest()
-	}, [testType, testDuration, wordCount, difficulty])
+	}, [testType, testDuration, wordCount, difficulty, includePunctuation])
 
 	// Timer countdown effect
 	useEffect(() => {
@@ -288,7 +302,8 @@ const TypingTest = ({ onTestComplete }) => {
 		// Generate exactly the number of words requested
 		const generatedWords = generateWords(
 			testType === "words" ? wordCount : 100,
-			difficulty
+			difficulty,
+			includePunctuation
 		)
 		setWords(generatedWords)
 		setCurrentWordIndex(0)
@@ -436,59 +451,39 @@ const TypingTest = ({ onTestComplete }) => {
 		// This function can be expanded for more detailed analysis
 	}
 
+	const calculateAccuracy = () => {
+		if (typedCharacters.length === 0) return 0
+		const correctChars = typedCharacters.filter((char) => char.correct).length
+		return Math.round((correctChars / typedCharacters.length) * 100)
+	}
+
 	const calculateWPM = () => {
 		if (!startTime || !testActive) return 0
 
-		// Ensure we have a valid time measurement
-		const elapsedMs = Date.now() - startTime
-		if (elapsedMs <= 0) return 0
-
-		const timeInMinutes = elapsedMs / 60000 // Convert ms to minutes
-
-		// Count correct characters (including spaces)
-		// Add space characters for completed words
-		const correctCharacters =
-			typedCharacters.filter((char) => char.correct).length +
-			(currentWordIndex > 0 ? currentWordIndex - 1 : 0)
-
-		// Use standard WPM formula: (characters / 5) / time
-		// The division by 5 is the standard way to convert characters to words
-		return Math.max(1, Math.round(correctCharacters / 5 / timeInMinutes))
-	}
-
-	const calculateRawWPM = () => {
-		if (!startTime || !testActive) return 0
-
-		// Ensure we have a valid time measurement
-		const elapsedMs = Date.now() - startTime
-		if (elapsedMs <= 0) return 0
-
-		const timeInMinutes = elapsedMs / 60000 // Convert ms to minutes
+		// Calculate elapsed time in minutes
+		const elapsedMinutes = (Date.now() - startTime) / 60000
 
 		// Count all typed characters (including spaces for completed words)
 		const totalCharacters =
 			typedCharacters.length + (currentWordIndex > 0 ? currentWordIndex - 1 : 0)
 
 		// Use standard WPM formula: (characters / 5) / time
-		return Math.max(1, Math.round(totalCharacters / 5 / timeInMinutes))
+		return Math.round(totalCharacters / 5 / elapsedMinutes)
 	}
 
-	const calculateAccuracy = () => {
-		if (typedCharacters.length === 0) return 100
-		const correctCharacters = typedCharacters.filter(
-			(char) => char.correct
-		).length
-		return Math.round((correctCharacters / typedCharacters.length) * 100)
+	const calculateRawWPM = () => {
+		return calculateWPM()
 	}
 
 	const handleCustomValueChange = (e) => {
-		const value = parseInt(e.target.value) || ""
+		const value = e.target.value
 		setCustomValue(value)
-		if (value > 0) {
-			if (testType === "time") {
-				setTestDuration(value)
-			} else {
-				setWordCount(value)
+		const numValue = parseInt(value)
+		if (!isNaN(numValue) && numValue > 0) {
+			if (activeOptionGroup === "time") {
+				setTestDuration(numValue)
+			} else if (activeOptionGroup === "words") {
+				setWordCount(numValue)
 			}
 		}
 	}
@@ -498,7 +493,13 @@ const TypingTest = ({ onTestComplete }) => {
 		setIsFocused(true)
 	}
 
-	const handleInputBlur = () => {
+	const handleInputBlur = (e) => {
+		// Prevent blur if clicking within the app container
+		if (e.relatedTarget && e.relatedTarget.closest(".typing-test-container")) {
+			e.preventDefault()
+			inputRef.current.focus()
+			return
+		}
 		setIsFocused(false)
 	}
 
@@ -518,10 +519,15 @@ const TypingTest = ({ onTestComplete }) => {
 	}
 
 	return (
-		<TypingTestContainer>
+		<TypingTestContainer className="typing-test-container">
 			<TestHeader>
 				<TestOptions>
 					<OptionGroup>
+						<OptionButton
+							active={includePunctuation}
+							onClick={() => setIncludePunctuation(!includePunctuation)}>
+							Punctuation {includePunctuation ? "On" : "Off"}
+						</OptionButton>
 						<OptionButton
 							active={activeOptionGroup === "difficulty"}
 							onClick={() => setActiveOptionGroup("difficulty")}>
@@ -587,11 +593,6 @@ const TypingTest = ({ onTestComplete }) => {
 								onClick={() => setTestDuration(60)}>
 								60s
 							</OptionButton>
-							<OptionButton
-								active={testDuration === 120}
-								onClick={() => setTestDuration(120)}>
-								120s
-							</OptionButton>
 							<CustomInput
 								type="number"
 								placeholder="Custom"
@@ -642,9 +643,7 @@ const TypingTest = ({ onTestComplete }) => {
 			<TextDisplay
 				className="text-display"
 				onClick={handleTextDisplayClick}
-				$isFocused={isFocused} // Pass the isFocused state to the styled component
-			>
-				<FocusMessage show={!isFocused}>Click here to focus</FocusMessage>
+				$isFocused={isFocused}>
 				{words
 					.slice(currentWordIndex, currentWordIndex + 30)
 					.map((word, index) => (
@@ -668,6 +667,10 @@ const TypingTest = ({ onTestComplete }) => {
 						</Word>
 					))}
 			</TextDisplay>
+
+			<FocusMessage $show={!isFocused}>
+				Click back in the text area to start
+			</FocusMessage>
 
 			<HiddenInput
 				ref={inputRef}
