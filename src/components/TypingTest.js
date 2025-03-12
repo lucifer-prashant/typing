@@ -463,16 +463,33 @@ const TypingTest = ({ onTestComplete }) => {
 		// Calculate elapsed time in minutes
 		const elapsedMinutes = (Date.now() - startTime) / 60000
 
-		// Count all typed characters (including spaces for completed words)
-		const totalCharacters =
-			typedCharacters.length + (currentWordIndex > 0 ? currentWordIndex - 1 : 0)
+		// Count all typed characters including current word
+		const completedWordsChars = typedCharacters.length
+		const currentWordChars = currentInput.length
+		const totalCharacters = completedWordsChars + currentWordChars
+
+		// Add space characters for completed words
+		const spacesCount = currentWordIndex > 0 ? currentWordIndex - 1 : 0
+		const totalWithSpaces = totalCharacters + spacesCount
 
 		// Use standard WPM formula: (characters / 5) / time
-		return Math.round(totalCharacters / 5 / elapsedMinutes)
+		// Normalize for very short tests (less than 1 second)
+		const normalizedMinutes = Math.max(elapsedMinutes, 1 / 60)
+		return Math.round(totalWithSpaces / 5 / normalizedMinutes)
 	}
 
 	const calculateRawWPM = () => {
 		return calculateWPM()
+	}
+
+	const handleInputBlur = (e) => {
+		// Only prevent blur if clicking within the text display area
+		if (e.relatedTarget && e.relatedTarget.closest(".text-display")) {
+			e.preventDefault()
+			inputRef.current.focus()
+			return
+		}
+		setIsFocused(false)
 	}
 
 	const handleCustomValueChange = (e) => {
@@ -482,25 +499,24 @@ const TypingTest = ({ onTestComplete }) => {
 		if (!isNaN(numValue) && numValue > 0) {
 			if (activeOptionGroup === "time") {
 				setTestDuration(numValue)
+				setTestType("time")
 			} else if (activeOptionGroup === "words") {
 				setWordCount(numValue)
+				setTestType("words")
 			}
 		}
+		// Keep focus on the custom input
+		e.target.focus()
+	}
+
+	const handleButtonClick = (e) => {
+		e.preventDefault()
+		inputRef.current.focus()
 	}
 
 	const handleTextDisplayClick = () => {
 		inputRef.current.focus()
 		setIsFocused(true)
-	}
-
-	const handleInputBlur = (e) => {
-		// Prevent blur if clicking within the app container
-		if (e.relatedTarget && e.relatedTarget.closest(".typing-test-container")) {
-			e.preventDefault()
-			inputRef.current.focus()
-			return
-		}
-		setIsFocused(false)
 	}
 
 	const handleInputFocus = () => {
@@ -525,12 +541,18 @@ const TypingTest = ({ onTestComplete }) => {
 					<OptionGroup>
 						<OptionButton
 							active={includePunctuation}
-							onClick={() => setIncludePunctuation(!includePunctuation)}>
+							onClick={(e) => {
+								handleButtonClick(e)
+								setIncludePunctuation(!includePunctuation)
+							}}>
 							Punctuation {includePunctuation ? "On" : "Off"}
 						</OptionButton>
 						<OptionButton
 							active={activeOptionGroup === "difficulty"}
-							onClick={() => setActiveOptionGroup("difficulty")}>
+							onClick={(e) => {
+								handleButtonClick(e)
+								setActiveOptionGroup("difficulty")
+							}}>
 							{activeOptionGroup === "difficulty"
 								? "Difficulty"
 								: difficulty.charAt(0).toUpperCase() + difficulty.slice(1)}
@@ -539,17 +561,26 @@ const TypingTest = ({ onTestComplete }) => {
 							<>
 								<OptionButton
 									active={difficulty === "easy"}
-									onClick={() => setDifficulty("easy")}>
+									onClick={(e) => {
+										handleButtonClick(e)
+										setDifficulty("easy")
+									}}>
 									Easy
 								</OptionButton>
 								<OptionButton
 									active={difficulty === "medium"}
-									onClick={() => setDifficulty("medium")}>
+									onClick={(e) => {
+										handleButtonClick(e)
+										setDifficulty("medium")
+									}}>
 									Medium
 								</OptionButton>
 								<OptionButton
 									active={difficulty === "hard"}
-									onClick={() => setDifficulty("hard")}>
+									onClick={(e) => {
+										handleButtonClick(e)
+										setDifficulty("hard")
+									}}>
 									Hard
 								</OptionButton>
 							</>
@@ -559,7 +590,8 @@ const TypingTest = ({ onTestComplete }) => {
 					<OptionGroup>
 						<OptionButton
 							active={activeOptionGroup === "time"}
-							onClick={() => {
+							onClick={(e) => {
+								handleButtonClick(e)
 								setActiveOptionGroup("time")
 								setTestType("time")
 							}}>
@@ -567,7 +599,8 @@ const TypingTest = ({ onTestComplete }) => {
 						</OptionButton>
 						<OptionButton
 							active={activeOptionGroup === "words"}
-							onClick={() => {
+							onClick={(e) => {
+								handleButtonClick(e)
 								setActiveOptionGroup("words")
 								setTestType("words")
 							}}>
@@ -580,17 +613,26 @@ const TypingTest = ({ onTestComplete }) => {
 							<OptionLabel>Duration:</OptionLabel>
 							<OptionButton
 								active={testDuration === 15}
-								onClick={() => setTestDuration(15)}>
+								onClick={(e) => {
+									handleButtonClick(e)
+									setTestDuration(15)
+								}}>
 								15s
 							</OptionButton>
 							<OptionButton
 								active={testDuration === 30}
-								onClick={() => setTestDuration(30)}>
+								onClick={(e) => {
+									handleButtonClick(e)
+									setTestDuration(30)
+								}}>
 								30s
 							</OptionButton>
 							<OptionButton
 								active={testDuration === 60}
-								onClick={() => setTestDuration(60)}>
+								onClick={(e) => {
+									handleButtonClick(e)
+									setTestDuration(60)
+								}}>
 								60s
 							</OptionButton>
 							<CustomInput
@@ -609,17 +651,26 @@ const TypingTest = ({ onTestComplete }) => {
 							<OptionLabel>Words:</OptionLabel>
 							<OptionButton
 								active={wordCount === 25}
-								onClick={() => setWordCount(25)}>
+								onClick={(e) => {
+									handleButtonClick(e)
+									setWordCount(25)
+								}}>
 								25
 							</OptionButton>
 							<OptionButton
 								active={wordCount === 50}
-								onClick={() => setWordCount(50)}>
+								onClick={(e) => {
+									handleButtonClick(e)
+									setWordCount(50)
+								}}>
 								50
 							</OptionButton>
 							<OptionButton
 								active={wordCount === 100}
-								onClick={() => setWordCount(100)}>
+								onClick={(e) => {
+									handleButtonClick(e)
+									setWordCount(100)
+								}}>
 								100
 							</OptionButton>
 							<CustomInput
