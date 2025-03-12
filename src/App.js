@@ -6,10 +6,22 @@ import TestResults from "./components/TestResults"
 import Login from "./components/Login"
 import UserProfile from "./components/UserProfile"
 import { AuthProvider, useAuth } from "./contexts/AuthContext"
-import { FaKeyboard, FaUser, FaTrophy, FaCog } from "react-icons/fa"
+import {
+	FaKeyboard,
+	FaUser,
+	FaTrophy,
+	FaCog,
+	FaKeyboard as FaKeyboardPractice,
+} from "react-icons/fa"
 import Leaderboard from "./components/Leaderboard"
 import Settings from "./components/Settings"
 import { ThemeProvider } from "./contexts/ThemeContext"
+import { generate } from "random-words"
+import {
+	getUserProfile,
+	generatePracticeWords,
+	generateWords,
+} from "./utils/userUtils"
 
 const gradientAnimation = keyframes`
 	0% { background-position: 0% 50%; }
@@ -166,7 +178,31 @@ function AppContent() {
 	const [testResults, setTestResults] = useState(null)
 	const [currentView, setCurrentView] = useState("test")
 	const [showSettings, setShowSettings] = useState(false)
+	const [isPracticeMode, setIsPracticeMode] = useState(false)
+	const [words, setWords] = useState([])
 	const { currentUser } = useAuth()
+	const restartTrigger = React.useRef(0)
+
+	const handlePracticeMode = () => {
+		setIsPracticeMode(!isPracticeMode)
+		if (!isPracticeMode) {
+			setTestResults(null)
+			restartTrigger.current += 1
+		}
+	}
+
+	useEffect(() => {
+		if (isPracticeMode && currentUser) {
+			const loadErrorChars = async () => {
+				const profile = await getUserProfile(currentUser.uid)
+				const errors = profile?.errorCharacters || []
+				setWords(generatePracticeWords(50, errors))
+			}
+			loadErrorChars()
+		} else {
+			setWords(generateWords(50))
+		}
+	}, [isPracticeMode, currentUser])
 
 	useEffect(() => {
 		if (currentUser) {
@@ -190,8 +226,6 @@ function AppContent() {
 		setTestResults(null)
 		restartTrigger.current += 1
 	}
-
-	const restartTrigger = React.useRef(0)
 
 	React.useEffect(() => {
 		const handleKeyDown = (e) => {
@@ -222,6 +256,7 @@ function AppContent() {
 				<TypingTest
 					onTestComplete={handleTestComplete}
 					restartTrigger={restartTrigger.current}
+					isPracticeMode={isPracticeMode}
 				/>
 			) : (
 				<TestResults
@@ -240,58 +275,45 @@ function AppContent() {
 
 	return (
 		<AppContainer>
-			{showSettings ? (
-				<Settings onClose={() => setShowSettings(false)} />
-			) : (
-				<>
-					<AppHeader>
-						<Title>Speed Typer</Title>
-						<Subtitle>
-							Test and improve your typing speed with common English words
-						</Subtitle>
+			<AppHeader>
+				<Title>TypeMaster</Title>
+				<Subtitle>Improve your typing speed and accuracy</Subtitle>
+				{currentUser && (
+					<NavBar>
+						<NavButton
+							$active={currentView === "test"}
+							onClick={() => setCurrentView("test")}>
+							<FaKeyboard /> Test
+						</NavButton>
+						<NavButton
+							$active={currentView === "profile"}
+							onClick={() => setCurrentView("profile")}>
+							<FaUser /> Profile
+						</NavButton>
+						<NavButton
+							$active={currentView === "leaderboard"}
+							onClick={() => setCurrentView("leaderboard")}>
+							<FaTrophy /> Leaderboard
+						</NavButton>
+					</NavBar>
+				)}
+			</AppHeader>
 
-						<NavBar>
-							<NavButton
-								$active={currentView === "test"}
-								onClick={() => setCurrentView("test")}>
-								<FaKeyboard /> Typing Test
-							</NavButton>
-							<NavButton
-								$active={currentView === "leaderboard"}
-								onClick={() => setCurrentView("leaderboard")}>
-								<FaTrophy /> Leaderboard
-							</NavButton>
-							{currentUser && (
-								<NavButton
-									$active={currentView === "profile"}
-									onClick={() => setCurrentView("profile")}>
-									<FaUser /> My Profile
-								</NavButton>
-							)}
-						</NavBar>
-					</AppHeader>
-
-					<TopRightControls>
-						<TopButton onClick={() => setShowSettings(!showSettings)}>
-							<FaCog /> Settings
-						</TopButton>
-						{currentUser ? (
-							<TopButton onClick={() => setCurrentView("profile")}>
-								<FaUser />
-								{currentUser.email
-									? currentUser.email.split("@")[0]
-									: "Profile"}
-							</TopButton>
-						) : (
-							<TopButton onClick={() => setCurrentView("login")}>
-								<FaUser /> Login
-							</TopButton>
-						)}
-					</TopRightControls>
-
-					{renderContent()}
-				</>
+			{currentUser && (
+				<TopRightControls>
+					<TopButton
+						$active={isPracticeMode}
+						onClick={() => setIsPracticeMode(!isPracticeMode)}>
+						<FaKeyboardPractice />
+						{isPracticeMode ? "Normal Mode" : "Practice Errors"}
+					</TopButton>
+					<TopButton onClick={() => setShowSettings(true)}>
+						<FaCog /> Settings
+					</TopButton>
+				</TopRightControls>
 			)}
+
+			{renderContent()}
 		</AppContainer>
 	)
 }
