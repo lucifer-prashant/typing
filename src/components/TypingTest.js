@@ -2,13 +2,7 @@ import React, { useState, useEffect, useRef } from "react"
 import styled from "styled-components"
 import { useAuth } from "../contexts/AuthContext"
 import { db } from "../firebase"
-import {
-	collection,
-	addDoc,
-	serverTimestamp,
-	doc,
-	getDoc,
-} from "firebase/firestore"
+import { collection, addDoc, serverTimestamp } from "firebase/firestore"
 import { generate } from "random-words"
 
 const TypingTestContainer = styled.div`
@@ -50,9 +44,9 @@ const OptionLabel = styled.span`
 `
 
 const OptionButton = styled.button`
-	background-color: ${(props) => (props.$active ? "#646cff" : "#1a1a1a")};
+	background-color: ${(props) => (props.active ? "#646cff" : "#1a1a1a")};
 	color: white;
-	border: 1px solid ${(props) => (props.$active ? "#646cff" : "#333")};
+	border: 1px solid ${(props) => (props.active ? "#646cff" : "#333")};
 	border-radius: 4px;
 	padding: 8px 12px;
 	cursor: pointer;
@@ -155,13 +149,13 @@ const Word = styled.span`
 
 const Character = styled.span`
 	color: ${(props) => {
-		if (props.$status === "correct") return "#4caf50"
-		if (props.$status === "incorrect") return "#f44336"
-		if (props.$status === "current") return "#646cff"
+		if (props.status === "correct") return "#4caf50"
+		if (props.status === "incorrect") return "#f44336"
+		if (props.status === "current") return "#646cff"
 		return "#888"
 	}};
 	position: relative;
-	font-weight: ${(props) => (props.$status === "current" ? "bold" : "normal")};
+	font-weight: ${(props) => (props.status === "current" ? "bold" : "normal")};
 
 	&::after {
 		content: "";
@@ -171,9 +165,9 @@ const Character = styled.span`
 		width: 100%;
 		height: 2px;
 		background-color: ${(props) =>
-			props.$status === "current" ? "#646cff" : "transparent"};
+			props.status === "current" ? "#646cff" : "transparent"};
 		animation: ${(props) =>
-			props.$status === "current" ? "blink 1s infinite" : "none"};
+			props.status === "current" ? "blink 1s infinite" : "none"};
 	}
 
 	@keyframes blink {
@@ -259,61 +253,7 @@ const generateWords = (
 	return words
 }
 
-// Generate practice words based on error patterns
-const generatePracticeWords = (count = 50, errorChars = []) => {
-	if (!errorChars || errorChars.length === 0) {
-		return generateWords(count)
-	}
-
-	const words = []
-	const alphabet = "abcdefghijklmnopqrstuvwxyz"
-	const minLength = 4
-	const maxLength = 9
-
-	for (let i = 0; i < count; i++) {
-		let wordLength =
-			Math.floor(Math.random() * (maxLength - minLength + 1)) + minLength
-		let word = ""
-		let consecutiveErrors = 0
-
-		for (let j = 0; j < wordLength; j++) {
-			// Alternate between error chars and random letters with variable probability
-			const useError = Math.random() < 0.7 - consecutiveErrors * 0.3
-
-			if (useError && errorChars.length > 0) {
-				const randomIndex = Math.floor(Math.random() * errorChars.length)
-				word += errorChars[randomIndex]
-				consecutiveErrors++
-			} else {
-				// Add random letter with occasional duplication
-				const randomChar = alphabet[Math.floor(Math.random() * alphabet.length)]
-				word += Math.random() < 0.3 ? randomChar.repeat(2) : randomChar
-				consecutiveErrors = 0
-			}
-
-			// Randomly insert 1-2 extra characters between error sequences
-			if (consecutiveErrors > 1 && Math.random() < 0.4) {
-				word += alphabet[Math.floor(Math.random() * alphabet.length)]
-				wordLength++
-				consecutiveErrors = 0
-			}
-		}
-
-		// Occasionally add suffix/prefix with random chars
-		if (Math.random() < 0.3) {
-			word = alphabet[Math.floor(Math.random() * alphabet.length)] + word
-		}
-		if (Math.random() < 0.3) {
-			word += alphabet[Math.floor(Math.random() * alphabet.length)]
-		}
-
-		words.push(word)
-	}
-
-	return words
-}
-
-const TypingTest = ({ onTestComplete, isPracticeMode }) => {
+const TypingTest = ({ onTestComplete }) => {
 	const [testType, setTestType] = useState("time") // 'time' or 'words'
 	const [testDuration, setTestDuration] = useState(30) // seconds
 	const [wordCount, setWordCount] = useState(25) // number of words
@@ -339,52 +279,33 @@ const TypingTest = ({ onTestComplete, isPracticeMode }) => {
 	// Initialize test and update words when settings change
 	useEffect(() => {
 		resetTest()
-	}, [
-		testType,
-		testDuration,
-		wordCount,
-		difficulty,
-		includePunctuation,
-		isPracticeMode,
-	])
+	}, [testType, testDuration, wordCount, difficulty, includePunctuation])
 
-	// Load user's error characters from profile when in practice mode
+	// Timer countdown effect
 	useEffect(() => {
-		if (isPracticeMode && currentUser) {
-			const loadErrorChars = async () => {
-				try {
-					const userRef = doc(db, "users", currentUser.uid)
-					const userDoc = await getDoc(userRef)
-
-					if (userDoc.exists()) {
-						const userData = userDoc.data()
-						if (userData.errorCharacters) {
-							// Generate new words with error characters
-							const words = generatePracticeWords(
-								testType === "words" ? wordCount : 100,
-								userData.errorCharacters
-							)
-							setWords(words)
-						}
+		let timerInterval
+		if (testActive && testType === "time" && timeLeft > 0) {
+			timerInterval = setInterval(() => {
+				setTimeLeft((prev) => {
+					if (prev <= 1) {
+						endTest()
+						return 0
 					}
-				} catch (error) {
-					console.error("Error loading error characters:", error)
-				}
-			}
-			loadErrorChars()
+					return prev - 1
+				})
+			}, 1000)
 		}
-	}, [isPracticeMode, currentUser, testType, wordCount])
+		return () => clearInterval(timerInterval)
+	}, [testActive, testType, timeLeft])
 
 	const resetTest = () => {
-		// Generate new words based on mode
-		const newWords = isPracticeMode
-			? generatePracticeWords(testType === "words" ? wordCount : 100)
-			: generateWords(
-					testType === "words" ? wordCount : 100,
-					difficulty,
-					includePunctuation
-				)
-		setWords(newWords)
+		// Generate exactly the number of words requested
+		const generatedWords = generateWords(
+			testType === "words" ? wordCount : 100,
+			difficulty,
+			includePunctuation
+		)
+		setWords(generatedWords)
 		setCurrentWordIndex(0)
 		setCurrentInput("")
 		setStartTime(null)
@@ -394,6 +315,7 @@ const TypingTest = ({ onTestComplete, isPracticeMode }) => {
 		setTypedCharacters([])
 		setErrorCount(0)
 		setErrorMap({})
+		// setProgress(0)
 	}
 
 	const startTest = () => {
@@ -618,7 +540,7 @@ const TypingTest = ({ onTestComplete, isPracticeMode }) => {
 				<TestOptions>
 					<OptionGroup>
 						<OptionButton
-							$active={includePunctuation}
+							active={includePunctuation}
 							onClick={(e) => {
 								handleButtonClick(e)
 								setIncludePunctuation(!includePunctuation)
@@ -626,7 +548,7 @@ const TypingTest = ({ onTestComplete, isPracticeMode }) => {
 							Punctuation {includePunctuation ? "On" : "Off"}
 						</OptionButton>
 						<OptionButton
-							$active={activeOptionGroup === "difficulty"}
+							active={activeOptionGroup === "difficulty"}
 							onClick={(e) => {
 								handleButtonClick(e)
 								setActiveOptionGroup("difficulty")
@@ -638,7 +560,7 @@ const TypingTest = ({ onTestComplete, isPracticeMode }) => {
 						{activeOptionGroup === "difficulty" && (
 							<>
 								<OptionButton
-									$active={difficulty === "easy"}
+									active={difficulty === "easy"}
 									onClick={(e) => {
 										handleButtonClick(e)
 										setDifficulty("easy")
@@ -646,7 +568,7 @@ const TypingTest = ({ onTestComplete, isPracticeMode }) => {
 									Easy
 								</OptionButton>
 								<OptionButton
-									$active={difficulty === "medium"}
+									active={difficulty === "medium"}
 									onClick={(e) => {
 										handleButtonClick(e)
 										setDifficulty("medium")
@@ -654,7 +576,7 @@ const TypingTest = ({ onTestComplete, isPracticeMode }) => {
 									Medium
 								</OptionButton>
 								<OptionButton
-									$active={difficulty === "hard"}
+									active={difficulty === "hard"}
 									onClick={(e) => {
 										handleButtonClick(e)
 										setDifficulty("hard")
