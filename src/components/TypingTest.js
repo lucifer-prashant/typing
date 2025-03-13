@@ -25,24 +25,34 @@ const TestHeader = styled.div`
 
 const TestOptions = styled.div`
 	display: flex;
-	gap: 20px;
+	gap: 15px;
 	flex-wrap: wrap;
 	width: 100%;
 	margin-bottom: 20px;
+
+	@media (max-width: 768px) {
+		gap: 10px;
+	}
 `
 
 const OptionGroup = styled.div`
 	display: flex;
-	gap: 10px;
+	gap: 8px;
 	align-items: center;
-	flex-wrap: wrap;
+	flex-wrap: ${(props) => (props.noWrap ? "nowrap" : "wrap")};
+	overflow-x: ${(props) => (props.noWrap ? "auto" : "visible")};
+	max-width: ${(props) => (props.expanded ? "100%" : "auto")};
+
+	@media (max-width: 768px) {
+		gap: 6px;
+	}
 `
 
 const OptionLabel = styled.span`
 	color: #888;
 	font-size: 14px;
 `
-
+// gy8ghbmh, h
 const CustomInput = styled.input`
 	background-color: #1a1a1a;
 	color: white;
@@ -98,7 +108,7 @@ const TextDisplay = styled.div`
 	cursor: text;
 	border: 1px solid rgba(255, 255, 255, 0.1);
 
-	filter: ${(props) => (props.$isFocused ? "none" : "blur(3px)")}
+	filter: ${(props) => (props.$isFocused ? "none" : "blur(3px)")};
 
 	&:focus-within {
 		border-color: #646cff;
@@ -125,6 +135,11 @@ const OptionButton = styled.button`
 
 	&:active {
 		transform: translateY(0);
+	}
+
+	@media (max-width: 768px) {
+		padding: 6px 12px;
+		font-size: 13px;
 	}
 `
 
@@ -489,14 +504,28 @@ const TypingTest = ({ onTestComplete }) => {
 		return calculateWPM()
 	}
 
+	const handleButtonClick = (e) => {
+		e.preventDefault()
+		e.stopPropagation()
+		inputRef.current.focus()
+	}
+
+	const handleTextDisplayClick = (e) => {
+		e.preventDefault()
+		inputRef.current.focus()
+		setIsFocused(true)
+	}
+
+	const handleInputFocus = () => {
+		setIsFocused(true)
+	}
+
 	const handleInputBlur = (e) => {
-		// Only prevent blur if clicking within the text display area
-		if (e.relatedTarget && e.relatedTarget.closest(".text-display")) {
-			e.preventDefault()
-			inputRef.current.focus()
-			return
+		// Only update focus state if clicking outside the typing test container
+		const container = document.querySelector(".typing-test-container")
+		if (!container || !container.contains(e.relatedTarget)) {
+			setIsFocused(false)
 		}
-		setIsFocused(false)
 	}
 
 	const handleCustomValueChange = (e) => {
@@ -512,22 +541,8 @@ const TypingTest = ({ onTestComplete }) => {
 				setTestType("words")
 			}
 		}
-		// Keep focus on the custom input
-		e.target.focus()
-	}
-
-	const handleButtonClick = (e) => {
-		e.preventDefault()
-		inputRef.current.focus()
-	}
-
-	const handleTextDisplayClick = () => {
-		inputRef.current.focus()
-		setIsFocused(true)
-	}
-
-	const handleInputFocus = () => {
-		setIsFocused(true)
+		// Don't refocus on input when changing custom value
+		e.stopPropagation()
 	}
 
 	useEffect(() => {
@@ -616,7 +631,7 @@ const TypingTest = ({ onTestComplete }) => {
 					</OptionGroup>
 
 					{activeOptionGroup === "time" && (
-						<OptionGroup>
+						<OptionGroup noWrap expanded>
 							<OptionLabel>Duration:</OptionLabel>
 							<OptionButton
 								active={testDuration === 15}
@@ -654,7 +669,7 @@ const TypingTest = ({ onTestComplete }) => {
 					)}
 
 					{activeOptionGroup === "words" && (
-						<OptionGroup>
+						<OptionGroup noWrap expanded>
 							<OptionLabel>Words:</OptionLabel>
 							<OptionButton
 								active={wordCount === 25}
