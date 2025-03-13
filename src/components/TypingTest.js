@@ -43,22 +43,6 @@ const OptionLabel = styled.span`
 	font-size: 14px;
 `
 
-const OptionButton = styled.button`
-	background-color: ${(props) => (props.active ? "#646cff" : "#1a1a1a")};
-	color: white;
-	border: 1px solid ${(props) => (props.active ? "#646cff" : "#333")};
-	border-radius: 4px;
-	padding: 8px 12px;
-	cursor: pointer;
-	transition: all 0.2s ease;
-	font-size: 14px;
-
-	&:hover {
-		background-color: #646cff;
-		border-color: #646cff;
-	}
-`
-
 const CustomInput = styled.input`
 	background-color: #1a1a1a;
 	color: white;
@@ -96,8 +80,8 @@ const Timer = styled.div`
 
 const TextDisplay = styled.div`
 	width: 100%;
-	background-color: #1a1a1a;
-	border-radius: 8px;
+	background-color: rgba(26, 26, 26, 0.8);
+	border-radius: 12px;
 	padding: 20px;
 	margin-bottom: 20px;
 	font-family: "Roboto Mono", monospace;
@@ -110,14 +94,37 @@ const TextDisplay = styled.div`
 	flex-wrap: wrap;
 	align-content: flex-start;
 	gap: 8px;
-	transition: all 0.3s ease;
+	transition: all 0.2s ease;
 	cursor: text;
+	border: 1px solid rgba(255, 255, 255, 0.1);
 
-	/* Apply blur effect when not focused */
-	filter: ${(props) => (props.$isFocused ? "none" : "blur(4px)")};
+	filter: ${(props) => (props.$isFocused ? "none" : "blur(3px)")}
 
 	&:focus-within {
-		outline: 2px solid #646cff;
+		border-color: #646cff;
+	}
+`
+
+const OptionButton = styled.button`
+	background-color: ${(props) =>
+		props.active ? "#646cff" : "rgba(26, 26, 26, 0.8)"};
+	color: white;
+	border: 1px solid
+		${(props) => (props.active ? "#646cff" : "rgba(255, 255, 255, 0.1)")};
+	border-radius: 8px;
+	padding: 8px 16px;
+	cursor: pointer;
+	transition: all 0.2s ease;
+	font-size: 14px;
+
+	&:hover {
+		background-color: #646cff;
+		border-color: #646cff;
+		transform: translateY(-1px);
+	}
+
+	&:active {
+		transform: translateY(0);
 	}
 `
 

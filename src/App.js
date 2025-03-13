@@ -23,36 +23,21 @@ const AppContainer = styled.div`
 	flex-direction: column;
 	align-items: center;
 	background: ${(props) => props.theme.background};
-	background-size: 400% 400%;
-	animation: ${gradientAnimation} 15s ease infinite;
 	color: ${(props) => props.theme.text};
 	padding: 20px;
 	position: relative;
 	overflow: hidden;
-
-	&::before {
-		content: "";
-		position: absolute;
-		top: 0;
-		left: 0;
-		right: 0;
-		bottom: 0;
-		background: radial-gradient(
-			circle at center,
-			transparent 0%,
-			rgba(0, 0, 0, 0.3) 100%
-		);
-		pointer-events: none;
-	}
 `
 
 const AppHeader = styled.header`
-	margin-bottom: 40px;
-	text-align: center;
 	width: 100%;
 	display: flex;
 	flex-direction: column;
 	align-items: center;
+	padding: 20px;
+	margin-bottom: 20px;
+	background: ${(props) => props.theme.background};
+	border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 `
 
 const glowAnimation = keyframes`
@@ -62,35 +47,35 @@ const glowAnimation = keyframes`
 `
 
 const Title = styled.h1`
-	font-size: 4rem;
+	font-size: 3.5rem;
 	color: #646cff;
+	margin: 0;
 	margin-bottom: 10px;
-	font-weight: 800;
-	letter-spacing: 2px;
-	animation: ${glowAnimation} 3s ease-in-out infinite;
-	background: linear-gradient(45deg, #646cff, #a78bfa);
-	-webkit-background-clip: text;
-	-webkit-text-fill-color: transparent;
+	animation: ${glowAnimation} 2s ease-in-out infinite;
 `
 
 const Subtitle = styled.p`
 	font-size: 1.2rem;
-	color: #888;
+	color: ${(props) => props.theme.text};
+	margin: 0;
+	margin-bottom: 30px;
+	opacity: 0.8;
 `
 
 const NavBar = styled.nav`
 	display: flex;
 	justify-content: center;
 	gap: 20px;
-	margin-top: 20px;
+	margin: 20px auto;
 	width: 100%;
-	max-width: 600px;
-	background: rgba(26, 26, 26, 0.8);
+	max-width: 800px;
+	background: ${(props) => props.theme.background};
 	padding: 15px;
 	border-radius: 15px;
 	box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
-	backdrop-filter: blur(4px);
 	border: 1px solid rgba(255, 255, 255, 0.18);
+	position: relative;
+	z-index: 10;
 `
 
 const NavButton = styled.button`
