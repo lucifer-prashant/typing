@@ -91,8 +91,25 @@ const Timer = styled.div`
 	width: auto; /* Let it take the space it needs */
 	min-width: 100px; /* Ensure consistent width */
 `
+const hexToRGB = (hex) => {
+	if (!hex) return "255, 255, 255" // Default to white
+	hex = hex.replace("#", "")
+	if (hex.length === 3) {
+		hex = hex
+			.split("")
+			.map((char) => char + char)
+			.join("")
+	}
+	const bigint = parseInt(hex, 16)
+	const r = (bigint >> 16) & 255
+	const g = (bigint >> 8) & 255
+	const b = bigint & 255
+
+	return `${r}, ${g}, ${b}`
+}
 
 const TextDisplay = styled.div`
+	${(props) => console.log("TextDisplay Theme:", props.theme)}; /* Debug log */
 	width: 100%;
 	background-color: ${(props) => props.theme.surface}CC;
 	border-radius: 12px;
@@ -110,12 +127,13 @@ const TextDisplay = styled.div`
 	gap: 8px;
 	transition: all 0.2s ease;
 	cursor: text;
-	border: 1px solid ${(props) => props.theme.border}1A;
 
+	box-shadow: 0 0 10px rgba(${(props) => hexToRGB(props.theme?.text)}, 0.3);
 	filter: ${(props) => (props.$isFocused ? "none" : "blur(3px)")};
 
 	&:focus-within {
-		border-color: ${(props) => props.theme.primary};
+		border-color: ${(props) => props.theme?.primary || "#646cff"};
+		box-shadow: 0 0 15px ${(props) => props.theme?.primary || "#646cff"}50;
 	}
 `
 

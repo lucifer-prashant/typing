@@ -23,14 +23,16 @@ const LeaderboardHeader = styled.div`
 `
 
 const Title = styled.h2`
-	color: #646cff;
+	color: ${(props) => props.theme.primary};
 	font-size: 2.5rem;
 	margin-bottom: 10px;
+	text-shadow: 0 0 10px ${(props) => props.theme.primary}40;
 `
 
 const Subtitle = styled.p`
-	color: #888;
+	color: ${(props) => props.theme.text};
 	font-size: 1.1rem;
+	opacity: 0.8;
 `
 
 const LeaderboardTable = styled.div`
@@ -69,7 +71,10 @@ const RankCell = styled.div`
 const UserCell = styled.div`
 	display: flex;
 	align-items: center;
-	gap: 10px;
+	gap: 15px;
+	padding-left: 20px;
+	font-size: 1.1rem;
+	color: ${(props) => props.theme.text};
 `
 
 const UserAvatar = styled.div`
@@ -94,9 +99,9 @@ const StatCell = styled.div`
 `
 
 const HeaderRow = styled(LeaderboardRow)`
-	background: rgba(26, 26, 26, 0.9);
+	background: ${(props) => props.theme.surface};
 	font-weight: bold;
-	color: #646cff;
+	color: ${(props) => props.theme.primary};
 	margin-bottom: 20px;
 
 	&:hover {
@@ -183,7 +188,7 @@ function Leaderboard() {
 			<LeaderboardTable>
 				<HeaderRow>
 					<RankCell>Rank</RankCell>
-					<UserCell>User</UserCell>
+					<UserCell>&nbsp;&nbsp;&nbsp;&nbsp;User</UserCell>
 					<StatCell>WPM</StatCell>
 					<StatCell>Accuracy</StatCell>
 				</HeaderRow>
