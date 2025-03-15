@@ -25,13 +25,14 @@ const TestHeader = styled.div`
 
 const TestOptions = styled.div`
 	display: flex;
-	gap: 15px;
-	flex-wrap: wrap;
+	gap: 10px;
+	flex-wrap: nowrap;
 	width: 100%;
 	margin-bottom: 20px;
+	position: relative;
 
 	@media (max-width: 768px) {
-		gap: 10px;
+		gap: 8px;
 	}
 `
 
@@ -41,7 +42,8 @@ const OptionGroup = styled.div`
 	align-items: center;
 	flex-wrap: ${(props) => (props.noWrap ? "nowrap" : "wrap")};
 	overflow-x: ${(props) => (props.noWrap ? "auto" : "visible")};
-	max-width: ${(props) => (props.expanded ? "100%" : "auto")};
+	max-width: ${(props) => (props.expanded ? "calc(100% - 150px)" : "auto")};
+	flex-shrink: ${(props) => (props.expanded ? 1 : 0)};
 
 	@media (max-width: 768px) {
 		gap: 6px;
@@ -49,21 +51,23 @@ const OptionGroup = styled.div`
 `
 
 const OptionLabel = styled.span`
-	color: #888;
+	color: ${(props) => props.theme.text}80;
 	font-size: 14px;
 `
 // gy8ghbmh, h
 const CustomInput = styled.input`
-	background-color: #1a1a1a;
-	color: white;
-	border: 1px solid #333;
-	border-radius: 4px;
-	padding: 8px 12px;
-	width: 80px;
-	font-size: 14px;
+	background-color: ${(props) => props.theme.surface};
+	color: ${(props) => props.theme.text};
+	border: 1px solid ${(props) => props.theme.border};
+	border-radius: 8px;
+	padding: 6px 10px;
+	width: 70px;
+
+	font-size: 13px;
+	text-decoration: none;
 
 	&:focus {
-		border-color: #646cff;
+		border-color: ${(props) => props.theme.primary};
 		outline: none;
 	}
 
@@ -90,7 +94,7 @@ const Timer = styled.div`
 
 const TextDisplay = styled.div`
 	width: 100%;
-	background-color: rgba(26, 26, 26, 0.8);
+	background-color: ${(props) => props.theme.surface}CC;
 	border-radius: 12px;
 	padding: 20px;
 	margin-bottom: 20px;
@@ -106,31 +110,36 @@ const TextDisplay = styled.div`
 	gap: 8px;
 	transition: all 0.2s ease;
 	cursor: text;
-	border: 1px solid rgba(255, 255, 255, 0.1);
+	border: 1px solid ${(props) => props.theme.border}1A;
 
 	filter: ${(props) => (props.$isFocused ? "none" : "blur(3px)")};
 
 	&:focus-within {
-		border-color: #646cff;
+		border-color: ${(props) => props.theme.primary};
 	}
 `
 
 const OptionButton = styled.button`
 	background-color: ${(props) =>
-		props.active ? "#646cff" : "rgba(26, 26, 26, 0.8)"};
-	color: white;
+		props.active ? props.theme.primary : props.theme.surface};
+	color: ${(props) => (props.active ? props.theme.text : props.theme.text)};
 	border: 1px solid
-		${(props) => (props.active ? "#646cff" : "rgba(255, 255, 255, 0.1)")};
+		${(props) => (props.active ? props.theme.primary : props.theme.border)};
 	border-radius: 8px;
 	padding: 8px 16px;
 	cursor: pointer;
-	transition: all 0.2s ease;
-	font-size: 14px;
+	transition: all 0.3s ease;
+	font-size: 13px;
+	text-decoration: none;
 
 	&:hover {
-		background-color: #646cff;
-		border-color: #646cff;
+		background-color: ${(props) =>
+			props.active ? props.theme.surface : props.theme.primary};
+		border-color: ${(props) => props.theme.primary};
+		color: ${(props) =>
+			props.active ? props.theme.primary : props.theme.text};
 		transform: translateY(-1px);
+		box-shadow: 0 3px 8px ${(props) => props.theme.primary}30;
 	}
 
 	&:active {
@@ -139,12 +148,66 @@ const OptionButton = styled.button`
 
 	@media (max-width: 768px) {
 		padding: 6px 12px;
-		font-size: 13px;
+		font-size: 12px;
 	}
 `
 
+const RestartIcon = styled.button`
+	background-color: ${(props) => props.theme.surface};
+	color: ${(props) => props.theme.primary};
+	border: 1px solid ${(props) => props.theme.border};
+	border-radius: 50%;
+	cursor: pointer;
+	font-size: 24px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	margin-top: 20px;
+	padding: 10px;
+	transition: all 0.3s ease;
+
+	&:hover {
+		background-color: ${(props) => props.theme.primary};
+		color: ${(props) => props.theme.text};
+		border-color: ${(props) => props.theme.primary};
+		transform: rotate(180deg);
+		box-shadow: 0 5px 15px ${(props) => props.theme.primary}40;
+	}
+
+	&:active {
+		transform: rotate(180deg) scale(0.95);
+	}
+
+	&::before {
+		content: "↻";
+	}
+`
+
+const RestartButton = styled.button`
+	background-color: ${(props) => props.theme.primary};
+	color: ${(props) => props.theme.text};
+	border: 1px solid ${(props) => props.theme.primary};
+	border-radius: 12px;
+	padding: 12px 24px;
+	margin-top: 20px;
+	cursor: pointer;
+	font-size: 16px;
+	transition: all 0.3s ease;
+
+	&:hover {
+		background-color: ${(props) => props.theme.surface};
+		color: ${(props) => props.theme.primary};
+		border-color: ${(props) => props.theme.primary};
+		transform: translateY(-2px);
+		box-shadow: 0 5px 15px ${(props) => props.theme.primary}40;
+	}
+
+	&:active {
+		transform: translateY(0);
+	}
+`
 const FocusMessage = styled.div`
-	color: #888;
+	color: ${(props) => props.theme.text}80;
 	font-size: 16px;
 	margin-top: 10px;
 	text-align: center;
@@ -205,43 +268,6 @@ const HiddenInput = styled.input`
 	width: 1px;
 	height: 1px;
 	overflow: hidden;
-`
-
-const RestartIcon = styled.button`
-	background-color: transparent;
-	color: #646cff;
-	border: none;
-	cursor: pointer;
-	font-size: 24px;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	margin-top: 20px;
-	transition: transform 0.2s ease;
-
-	&:hover {
-		transform: rotate(180deg);
-	}
-
-	&::before {
-		content: "↻";
-	}
-`
-
-const RestartButton = styled.button`
-	background-color: #646cff;
-	color: white;
-	border: none;
-	border-radius: 4px;
-	padding: 10px 20px;
-	margin-top: 20px;
-	cursor: pointer;
-	font-size: 16px;
-	transition: background-color 0.2s ease;
-
-	&:hover {
-		background-color: #535bf2;
-	}
 `
 
 // Generate random words for typing test based on difficulty

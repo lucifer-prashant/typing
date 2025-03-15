@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react"
-import styled, { keyframes } from "styled-components"
+import styled, { keyframes, createGlobalStyle } from "styled-components"
 import "./App.css"
 import TypingTest from "./components/TypingTest"
 import TestResults from "./components/TestResults"
@@ -10,6 +10,24 @@ import { FaKeyboard, FaUser, FaTrophy, FaCog } from "react-icons/fa"
 import Leaderboard from "./components/Leaderboard"
 import Settings from "./components/Settings"
 import { ThemeProvider } from "./contexts/ThemeContext"
+
+// Global style to ensure theme consistency throughout the app
+const GlobalStyle = createGlobalStyle`
+  :root {
+    --transition-standard: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  
+  body {
+    margin: 0;
+    padding: 0;
+    font-family: 'Inter', 'Roboto', sans-serif;
+    transition: background-color 0.5s ease, color 0.5s ease;
+  }
+  
+  button {
+    font-family: 'Inter', 'Roboto', sans-serif;
+  }
+`
 
 const gradientAnimation = keyframes`
 	0% { background-position: 0% 50%; }
@@ -23,6 +41,11 @@ const AppContainer = styled.div`
 	flex-direction: column;
 	align-items: center;
 	background: ${(props) => props.theme.background};
+	background-image: linear-gradient(
+		135deg,
+		${(props) => props.theme.gradientStart} 0%,
+		${(props) => props.theme.gradientEnd} 100%
+	);
 	background-size: 400% 400%;
 	animation: ${gradientAnimation} 15s ease infinite;
 	color: ${(props) => props.theme.text};
@@ -56,26 +79,37 @@ const AppHeader = styled.header`
 `
 
 const glowAnimation = keyframes`
-	0% { text-shadow: 0 0 10px #646cff, 0 0 20px #646cff, 0 0 30px #646cff; }
-	50% { text-shadow: 0 0 20px #646cff, 0 0 30px #646cff, 0 0 40px #646cff; }
-	100% { text-shadow: 0 0 10px #646cff, 0 0 20px #646cff, 0 0 30px #646cff; }
+	0% { text-shadow: 0 0 10px ${(props) => props.theme.headerGlow}, 0 0 20px ${(props) => props.theme.headerGlow}, 0 0 30px ${(props) => props.theme.headerGlow}; }
+	50% { text-shadow: 0 0 20px ${(props) => props.theme.headerGlow}, 0 0 30px ${(props) => props.theme.headerGlow}, 0 0 40px ${(props) => props.theme.headerGlow}; }
+	100% { text-shadow: 0 0 10px ${(props) => props.theme.headerGlow}, 0 0 20px ${(props) => props.theme.headerGlow}, 0 0 30px ${(props) => props.theme.headerGlow}; }
 `
 
 const Title = styled.h1`
 	font-size: 4rem;
-	color: #646cff;
+	color: ${(props) => props.theme.primary};
 	margin-bottom: 10px;
 	font-weight: 800;
 	letter-spacing: 2px;
-	animation: ${glowAnimation} 3s ease-in-out infinite;
-	background: linear-gradient(45deg, #646cff, #a78bfa);
-	-webkit-background-clip: text;
-	-webkit-text-fill-color: transparent;
+
+	font-family: "JetBrains Mono";
+	text-shadow:
+		0 2px 4px rgba(0, 0, 0, 0.3),
+		0 0 15px ${(props) => props.theme.headerGlow + "80"};
+	transform: perspective(500px) translateZ(0);
+	transition: all 0.3s ease;
+
+	&:hover {
+		text-shadow:
+			0 4px 8px rgba(0, 0, 0, 0.4),
+			0 0 20px ${(props) => props.theme.headerGlow + "CC"};
+		transform: perspective(500px) translateZ(10px);
+	}
 `
 
 const Subtitle = styled.p`
 	font-size: 1.2rem;
-	color: #888;
+	color: ${(props) => props.theme.text};
+	opacity: 0.8;
 `
 
 const NavBar = styled.nav`
@@ -85,34 +119,34 @@ const NavBar = styled.nav`
 	margin-top: 20px;
 	width: 100%;
 	max-width: 600px;
-	background: rgba(26, 26, 26, 0.8);
+	background: ${(props) => props.theme.surface}CC; /* CC adds 80% opacity */
 	padding: 15px;
 	border-radius: 15px;
-	box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+	box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
 	backdrop-filter: blur(4px);
-	border: 1px solid rgba(255, 255, 255, 0.18);
+	border: 1px solid ${(props) => props.theme.border}40; /* 40 adds 25% opacity */
 `
 
 const NavButton = styled.button`
 	background-color: ${(props) =>
 		props.$active ? props.theme.primary : props.theme.surface};
-	color: white;
+	color: ${(props) => props.theme.text};
 	border: 1px solid
-		${(props) => (props.$active ? "#646cff" : "rgba(255, 255, 255, 0.1)")};
+		${(props) => (props.$active ? props.theme.border : props.theme.border)};
 	border-radius: 12px;
 	padding: 12px 24px;
 	cursor: pointer;
 	font-size: 16px;
-	transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+	transition: var(--transition-standard);
 	display: flex;
 	align-items: center;
 	gap: 8px;
 
 	&:hover {
-		background-color: #646cff;
-		border-color: #646cff;
+		background-color: ${(props) => props.theme.primary};
+		border-color: ${(props) => props.theme.border};
 		transform: translateY(-2px);
-		box-shadow: 0 5px 15px rgba(100, 108, 255, 0.4);
+		box-shadow: 0 5px 15px ${(props) => props.theme.primary}40;
 	}
 
 	&:active {
@@ -123,7 +157,6 @@ const NavButton = styled.button`
 		font-size: 18px;
 	}
 `
-
 const TopRightControls = styled.div`
 	position: absolute;
 	top: 20px;
@@ -133,14 +166,14 @@ const TopRightControls = styled.div`
 `
 
 const TopButton = styled.button`
-	background-color: rgba(26, 26, 26, 0.8);
-	color: white;
-	border: 1px solid rgba(255, 255, 255, 0.1);
+	background-color: ${(props) => props.theme.surface}CC;
+	color: ${(props) => props.theme.text};
+	border: 1px solid ${(props) => props.theme.border}40;
 	border-radius: 50px;
 	padding: 12px 24px;
 	cursor: pointer;
 	font-size: 16px;
-	transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+	transition: var(--transition-standard);
 	display: flex;
 	align-items: center;
 	gap: 8px;
@@ -148,7 +181,8 @@ const TopButton = styled.button`
 	box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 
 	&:hover {
-		background-color: rgba(51, 51, 51, 0.9);
+		background-color: ${(props) => props.theme.primary};
+		color: ${(props) => props.theme.text};
 		transform: translateY(-2px);
 		box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
 	}
@@ -161,7 +195,6 @@ const TopButton = styled.button`
 		font-size: 18px;
 	}
 `
-
 function AppContent() {
 	const [testResults, setTestResults] = useState(null)
 	const [currentView, setCurrentView] = useState("test")
@@ -338,6 +371,7 @@ function App() {
 		<>
 			<AuthProvider>
 				<ThemeProvider>
+					<GlobalStyle />
 					<AppContent />
 				</ThemeProvider>
 			</AuthProvider>

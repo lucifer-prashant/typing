@@ -9,6 +9,8 @@ import {
 	FaKeyboard,
 	FaArrowLeft,
 	FaUser,
+	FaCheck,
+	FaInfoCircle,
 } from "react-icons/fa"
 import { updateUserProfile, getUserProfile } from "../utils/userUtils"
 
@@ -18,11 +20,12 @@ const SettingsContainer = styled.div`
 	padding: 30px;
 	width: 100%;
 	max-width: 600px;
-	box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+	box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
 	backdrop-filter: blur(4px);
 	border: 1px solid ${(props) => props.theme.border};
 	position: relative;
 	color: ${(props) => props.theme.text};
+	transition: all 0.3s ease;
 `
 
 const BackButton = styled.button`
@@ -73,45 +76,103 @@ const ThemeGrid = styled.div`
 	margin-top: 15px;
 `
 
-const gradientAnimation = keyframes`
+const glow = keyframes`
 	0% {
-		background-position: 0% 50%;
+		box-shadow: 0 0 5px 0px rgba(255, 255, 255, 0.5);
 	}
 	50% {
-		background-position: 100% 50%;
+		box-shadow: 0 0 15px 2px rgba(255, 255, 255, 0.7);
 	}
 	100% {
-		background-position: 0% 50%;
+		box-shadow: 0 0 5px 0px rgba(255, 255, 255, 0.5);
 	}
 `
 
 const ThemeButton = styled.button`
-	background: ${(props) => props.theme.background};
-	color: ${(props) => props.theme.text};
-	border-color: ${(props) => props.theme.primary};
-	&:hover {
-		background: ${(props) => props.theme.surface};
-	}
+	background: ${(props) =>
+		props.$themeColor?.background || props.theme.background};
+	color: ${(props) => props.$themeColor?.text || props.theme.text};
 	border: 2px solid
-		${(props) => (props.$active ? props.theme.primary : "transparent")};
+		${(props) =>
+			props.$active
+				? props.$themeColor?.primary || props.theme.primary
+				: "transparent"};
 	border-radius: 12px;
 	padding: 15px;
 	cursor: pointer;
 	transition: all 0.3s ease;
 	font-weight: ${(props) => (props.$active ? "bold" : "normal")};
-	background-size: 400% 400%;
-	animation: ${gradientAnimation} 15s ease infinite;
+	position: relative;
+	overflow: hidden;
+	animation: ${(props) => (props.$active ? glow : "none")} 2s infinite;
+
+	&::before {
+		content: "";
+		position: absolute;
+		top: 0;
+		left: 0;
+		right: 0;
+		bottom: 0;
+		background: ${(props) =>
+			props.$themeColor?.primary || props.theme.primary}20;
+		opacity: ${(props) => (props.$active ? 0.5 : 0)};
+		transition: opacity 0.3s ease;
+	}
 
 	&:hover {
 		transform: translateY(-2px);
-		box-shadow: 0 5px 15px ${(props) => props.theme.primary}40;
+		box-shadow: 0 5px 15px
+			${(props) => props.$themeColor?.primary || props.theme.primary}40;
+
+		&::before {
+			opacity: 0.3;
+		}
+	}
+
+	// Preview elements
+	.theme-preview {
+		width: 100%;
+		margin-top: 5px;
+		opacity: 0.7;
+		font-size: 0.8rem;
+		display: flex;
+		flex-direction: column;
+		gap: 3px;
+	}
+
+	.preview-item {
+		height: 5px;
+		border-radius: 3px;
+	}
+
+	.preview-bg {
+		background-color: ${(props) =>
+			props.$themeColor?.background || props.theme.background};
+	}
+
+	.preview-primary {
+		background-color: ${(props) =>
+			props.$themeColor?.primary || props.theme.primary};
+	}
+
+	.preview-border {
+		background-color: ${(props) =>
+			props.$themeColor?.border || props.theme.border};
+	}
+
+	.active-indicator {
+		position: absolute;
+		top: 8px;
+		right: 8px;
+		color: ${(props) => props.$themeColor?.primary || props.theme.primary};
+		font-size: 1rem;
 	}
 `
 
 const ToggleButton = styled.button`
 	background: ${(props) =>
 		props.$active ? props.theme.primary : props.theme.surface};
-	color: ${(props) => (props.$active ? props.theme.text : props.theme.text)};
+	color: ${(props) => (props.$active ? "#ffffff" : props.theme.text)};
 	border: 1px solid
 		${(props) => (props.$active ? props.theme.primary : props.theme.border)};
 	border-radius: 12px;
@@ -124,7 +185,7 @@ const ToggleButton = styled.button`
 
 	&:hover {
 		background: ${(props) => props.theme.primary};
-		color: ${(props) => props.theme.text};
+		color: #ffffff;
 		border-color: ${(props) => props.theme.primary};
 	}
 `
@@ -142,36 +203,166 @@ const Input = styled.input`
 	&:focus {
 		outline: none;
 		border-color: ${(props) => props.theme.primary};
+		box-shadow: 0 0 0 2px ${(props) => props.theme.primary}40;
 	}
 `
 
 const ErrorMessage = styled.p`
-	color: #ff4444;
+	color: ${(props) => props.theme.error};
 	margin-top: 8px;
 	font-size: 0.9rem;
 `
 
 const SuccessMessage = styled.p`
-	color: #4caf50;
+	color: ${(props) => props.theme.success};
 	margin-top: 8px;
 	font-size: 0.9rem;
 	opacity: ${(props) => (props.$visible ? 1 : 0)};
 	transition: opacity 0.3s ease-in-out;
+	display: flex;
+	align-items: center;
+	gap: 5px;
+`
+
+const ThemePreview = styled.div`
+	display: flex;
+	flex-direction: column;
+	margin-top: 20px;
+	padding: 15px;
+	border-radius: 12px;
+	background: ${(props) => props.theme.surface};
+	border: 1px solid ${(props) => props.theme.border};
+	transition: all 0.3s ease;
+`
+
+const PreviewText = styled.div`
+	color: ${(props) => props.theme.text};
+	margin-bottom: 10px;
+`
+
+const PreviewAccent = styled.span`
+	color: ${(props) => props.theme.primary};
+	font-weight: bold;
+`
+
+const PreviewColorGrid = styled.div`
+	display: grid;
+	grid-template-columns: repeat(4, 1fr);
+	gap: 10px;
+	margin-top: 10px;
+`
+
+const ColorSwatch = styled.div`
+	height: 30px;
+	border-radius: 4px;
+	background: ${(props) => props.color};
+	position: relative;
+	overflow: hidden;
+
+	&:after {
+		content: "${(props) => props.label}";
+		position: absolute;
+		bottom: 2px;
+		left: 5px;
+		font-size: 0.6rem;
+		color: ${(props) => {
+			// Calculate contrast
+			const r = parseInt(props.color.slice(1, 3), 16)
+			const g = parseInt(props.color.slice(3, 5), 16)
+			const b = parseInt(props.color.slice(5, 7), 16)
+			const brightness = (r * 299 + g * 587 + b * 114) / 1000
+			return brightness > 128 ? "#000000" : "#ffffff"
+		}};
+		font-weight: bold;
+	}
+`
+
+const Button = styled.button`
+	background: ${(props) => props.theme.primary};
+	color: #ffffff;
+	border: none;
+	border-radius: 8px;
+	padding: 10px 15px;
+	cursor: pointer;
+	font-size: 0.9rem;
+	transition: all 0.2s ease;
+	display: inline-flex;
+	align-items: center;
+	gap: 5px;
+	margin-top: 10px;
+
+	&:hover {
+		background: ${(props) => {
+			const r = parseInt(props.theme.primary.slice(1, 3), 16)
+			const g = parseInt(props.theme.primary.slice(3, 5), 16)
+			const b = parseInt(props.theme.primary.slice(5, 7), 16)
+			return `rgb(${Math.max(0, r - 20)}, ${Math.max(0, g - 20)}, ${Math.max(0, b - 20)})`
+		}};
+		transform: translateY(-2px);
+	}
+
+	&:active {
+		transform: translateY(0);
+	}
+`
+
+const Tooltip = styled.div`
+	position: relative;
+	display: inline-block;
+	margin-left: 5px;
+
+	.tooltip-text {
+		visibility: hidden;
+		width: 200px;
+		background-color: ${(props) => props.theme.surface};
+		color: ${(props) => props.theme.text};
+		text-align: center;
+		border-radius: 6px;
+		padding: 5px;
+		position: absolute;
+		z-index: 1;
+		bottom: 125%;
+		left: 50%;
+		margin-left: -100px;
+		opacity: 0;
+		transition: opacity 0.3s;
+		border: 1px solid ${(props) => props.theme.border};
+		font-size: 0.8rem;
+	}
+
+	&:hover .tooltip-text {
+		visibility: visible;
+		opacity: 1;
+	}
 `
 
 const Settings = ({ onClose }) => {
 	const { theme, setTheme, availableThemes } = useTheme()
-
-	const handleThemeSelect = (themeName) => {
-		setTheme(availableThemes.find((t) => t.name === themeName))
-	}
 	const { currentUser } = useAuth()
-	const [soundEnabled, setSoundEnabled] = useState(true)
-	const [keyboardSoundsEnabled, setKeyboardSoundsEnabled] = useState(true)
+	const [soundEnabled, setSoundEnabled] = useState(() => {
+		const savedSound = localStorage.getItem("soundEnabled")
+		return savedSound !== null ? savedSound === "true" : true
+	})
 	const [username, setUsername] = useState("")
 	const [error, setError] = useState("")
 	const [showSuccess, setShowSuccess] = useState(false)
 	const containerRef = useRef(null)
+	const [currentThemeIndex, setCurrentThemeIndex] = useState(() => {
+		const index = availableThemes.findIndex((t) => t.name === theme?.name)
+		return index >= 0 ? index : 0
+	})
+
+	// Function to apply theme throughout the application
+	const handleThemeSelect = (selectedTheme, index) => {
+		// Apply theme to styled-components context
+		setTheme(selectedTheme)
+		setCurrentThemeIndex(index)
+
+		// Play a sound effect if sound is enabled
+		if (soundEnabled) {
+			// You could implement a sound effect here
+		}
+	}
 
 	useEffect(() => {
 		const loadUserProfile = async () => {
@@ -184,6 +375,14 @@ const Settings = ({ onClose }) => {
 		}
 		loadUserProfile()
 	}, [currentUser])
+
+	useEffect(() => {
+		// Apply current theme to body when component mounts
+		if (theme) {
+			document.body.style.background = theme.background
+			document.body.style.color = theme.text
+		}
+	}, [theme])
 
 	const handleUsernameChange = async () => {
 		try {
@@ -199,6 +398,12 @@ const Settings = ({ onClose }) => {
 		} catch (error) {
 			setError(error.message)
 		}
+	}
+
+	const handleSoundToggle = () => {
+		const newSoundState = !soundEnabled
+		setSoundEnabled(newSoundState)
+		localStorage.setItem("soundEnabled", newSoundState.toString())
 	}
 
 	useEffect(() => {
@@ -229,16 +434,27 @@ const Settings = ({ onClose }) => {
 					<FaPalette /> Theme
 				</SectionTitle>
 				<ThemeGrid>
-					{availableThemes.map((themeName) => (
+					{availableThemes.map((themeOption) => (
 						<ThemeButton
-							key={themeName.name}
-							$themeColor={theme ? theme.primary : "#000000"}
-							$active={theme ? themeName === theme.name : false}
-							onClick={() => handleThemeSelect(themeName)}>
-							{themeName.name}
+							key={themeOption.name}
+							$themeColor={themeOption}
+							$active={theme?.name === themeOption.name}
+							onClick={() => handleThemeSelect(themeOption)}>
+							{themeOption.name}
+							<div className="theme-preview">
+								<div className="preview-item preview-bg"></div>
+								<div className="preview-item preview-primary"></div>
+								<div className="preview-item preview-border"></div>
+							</div>
 						</ThemeButton>
 					))}
 				</ThemeGrid>
+
+				<ThemePreview>
+					<PreviewText>
+						Current theme: <PreviewAccent>{theme?.name}</PreviewAccent>
+					</PreviewText>
+				</ThemePreview>
 			</SettingsSection>
 
 			<SettingsSection>

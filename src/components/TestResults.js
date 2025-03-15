@@ -83,19 +83,26 @@ const ChartContainer = styled.div`
 const RestartButton = styled.button`
 	background-color: ${(props) => props.theme.primary};
 	color: ${(props) => props.theme.text};
-	border: none;
-	border-radius: 4px;
-	padding: 10px 20px;
+	border: 1px solid ${(props) => props.theme.primary};
+	border-radius: 12px;
+	padding: 12px 24px;
 	margin-top: 20px;
 	cursor: pointer;
 	font-size: 16px;
-	transition: all 0.2s ease;
+	transition: all 0.3s ease;
 	display: block;
 	margin: 30px auto 0;
 
 	&:hover {
-		background-color: ${(props) => props.theme.secondary};
+		background-color: ${(props) => props.theme.surface};
+		color: ${(props) => props.theme.primary};
+		border-color: ${(props) => props.theme.primary};
 		transform: translateY(-2px);
+		box-shadow: 0 5px 15px ${(props) => props.theme.primary}40;
+	}
+
+	&:active {
+		transform: translateY(0);
 	}
 `
 

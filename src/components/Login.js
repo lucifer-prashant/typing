@@ -52,8 +52,8 @@ const Input = styled.input`
 `
 
 const Button = styled.button`
-	background-color: #646cff;
-	color: white;
+	background-color: ${(props) => props.theme.primary};
+	color: ${(props) => props.theme.text};
 	border: none;
 	border-radius: 8px;
 	padding: 15px;
@@ -66,9 +66,14 @@ const Button = styled.button`
 	overflow: hidden;
 
 	&:hover {
-		background-color: #535bf2;
+		background-color: ${(props) => {
+			const r = parseInt(props.theme.primary.slice(1, 3), 16)
+			const g = parseInt(props.theme.primary.slice(3, 5), 16)
+			const b = parseInt(props.theme.primary.slice(5, 7), 16)
+			return `rgb(${Math.max(0, r - 20)}, ${Math.max(0, g - 20)}, ${Math.max(0, b - 20)})`
+		}};
 		transform: translateY(-1px);
-		box-shadow: 0 4px 12px rgba(100, 108, 255, 0.2);
+		box-shadow: 0 4px 12px ${(props) => props.theme.primary}40;
 	}
 
 	&:active {
@@ -76,22 +81,28 @@ const Button = styled.button`
 	}
 
 	&:disabled {
-		background-color: #444;
+		background-color: ${(props) => props.theme.surface};
 		cursor: not-allowed;
 		transform: none;
 		box-shadow: none;
+		opacity: 0.6;
 	}
 `
 
 const GoogleButton = styled(Button)`
-	background-color: #db4437;
+	background-color: ${(props) => props.theme.error};
 	display: flex;
 	justify-content: center;
 	align-items: center;
 	gap: 10px;
 
 	&:hover {
-		background-color: #c53929;
+		background-color: ${(props) => {
+			const r = parseInt(props.theme.error.slice(1, 3), 16)
+			const g = parseInt(props.theme.error.slice(3, 5), 16)
+			const b = parseInt(props.theme.error.slice(5, 7), 16)
+			return `rgb(${Math.max(0, r - 20)}, ${Math.max(0, g - 20)}, ${Math.max(0, b - 20)})`
+		}};
 	}
 `
 

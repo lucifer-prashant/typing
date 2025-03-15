@@ -81,17 +81,23 @@ const UserEmail = styled.p`
 `
 
 const LogoutButton = styled.button`
-	background-color: #333;
-	color: white;
-	border: none;
+	background-color: ${(props) => props.theme.surface};
+	color: ${(props) => props.theme.text};
+	border: 1px solid ${(props) => props.theme.border}40;
 	border-radius: 4px;
 	padding: 8px 16px;
 	cursor: pointer;
 	font-size: 14px;
-	transition: background-color 0.2s ease;
+	transition: all 0.2s ease;
 
 	&:hover {
-		background-color: #444;
+		background-color: ${(props) => props.theme.primary};
+		border-color: ${(props) => props.theme.primary};
+		transform: translateY(-1px);
+	}
+
+	&:active {
+		transform: translateY(0);
 	}
 `
 
