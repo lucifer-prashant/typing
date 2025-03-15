@@ -77,7 +77,7 @@ const CustomInput = styled.input`
 const Timer = styled.div`
 	font-size: 24px;
 	font-weight: bold;
-	color: #646cff;
+	color: ${(props) => props.theme.primary};
 	display: flex;
 	align-items: center;
 	justify-content: flex-end;
@@ -171,10 +171,10 @@ const Word = styled.span`
 
 const Character = styled.span`
 	color: ${(props) => {
-		if (props.status === "correct") return "#4caf50"
-		if (props.status === "incorrect") return "#f44336"
-		if (props.status === "current") return "#646cff"
-		return "#888"
+		if (props.status === "correct") return props.theme.success
+		if (props.status === "incorrect") return props.theme.error
+		if (props.status === "current") return props.theme.primary
+		return props.theme.text
 	}};
 	position: relative;
 	font-weight: ${(props) => (props.status === "current" ? "bold" : "normal")};
@@ -187,7 +187,7 @@ const Character = styled.span`
 		width: 100%;
 		height: 2px;
 		background-color: ${(props) =>
-			props.status === "current" ? "#646cff" : "transparent"};
+			props.status === "current" ? props.theme.primary : "transparent"};
 		animation: ${(props) =>
 			props.status === "current" ? "blink 1s infinite" : "none"};
 	}

@@ -95,7 +95,7 @@ const NavBar = styled.nav`
 
 const NavButton = styled.button`
 	background-color: ${(props) =>
-		props.$active ? "#646cff" : "rgba(26, 26, 26, 0.5)"};
+		props.$active ? props.theme.primary : props.theme.surface};
 	color: white;
 	border: 1px solid
 		${(props) => (props.$active ? "#646cff" : "rgba(255, 255, 255, 0.1)")};

@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState } from "react"
-import styled from "styled-components"
+import styled, { keyframes } from "styled-components"
 import { useTheme } from "../contexts/ThemeContext"
 import { useAuth } from "../contexts/AuthContext"
 import {
@@ -22,6 +22,7 @@ const SettingsContainer = styled.div`
 	backdrop-filter: blur(4px);
 	border: 1px solid ${(props) => props.theme.border};
 	position: relative;
+	color: ${(props) => props.theme.text};
 `
 
 const BackButton = styled.button`
@@ -72,9 +73,25 @@ const ThemeGrid = styled.div`
 	margin-top: 15px;
 `
 
+const gradientAnimation = keyframes`
+	0% {
+		background-position: 0% 50%;
+	}
+	50% {
+		background-position: 100% 50%;
+	}
+	100% {
+		background-position: 0% 50%;
+	}
+`
+
 const ThemeButton = styled.button`
-	background: ${(props) => props.$themeColor};
-	color: white;
+	background: ${(props) => props.theme.background};
+	color: ${(props) => props.theme.text};
+	border-color: ${(props) => props.theme.primary};
+	&:hover {
+		background: ${(props) => props.theme.surface};
+	}
 	border: 2px solid
 		${(props) => (props.$active ? props.theme.primary : "transparent")};
 	border-radius: 12px;
@@ -82,17 +99,19 @@ const ThemeButton = styled.button`
 	cursor: pointer;
 	transition: all 0.3s ease;
 	font-weight: ${(props) => (props.$active ? "bold" : "normal")};
+	background-size: 400% 400%;
+	animation: ${gradientAnimation} 15s ease infinite;
 
 	&:hover {
 		transform: translateY(-2px);
-		box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+		box-shadow: 0 5px 15px ${(props) => props.theme.primary}40;
 	}
 `
 
 const ToggleButton = styled.button`
 	background: ${(props) =>
 		props.$active ? props.theme.primary : props.theme.surface};
-	color: ${(props) => (props.$active ? "white" : props.theme.text)};
+	color: ${(props) => (props.$active ? props.theme.text : props.theme.text)};
 	border: 1px solid
 		${(props) => (props.$active ? props.theme.primary : props.theme.border)};
 	border-radius: 12px;
@@ -105,7 +124,8 @@ const ToggleButton = styled.button`
 
 	&:hover {
 		background: ${(props) => props.theme.primary};
-		color: white;
+		color: ${(props) => props.theme.text};
+		border-color: ${(props) => props.theme.primary};
 	}
 `
 
@@ -135,12 +155,16 @@ const SuccessMessage = styled.p`
 	color: #4caf50;
 	margin-top: 8px;
 	font-size: 0.9rem;
-	opacity: ${props => props.$visible ? 1 : 0};
+	opacity: ${(props) => (props.$visible ? 1 : 0)};
 	transition: opacity 0.3s ease-in-out;
 `
 
 const Settings = ({ onClose }) => {
 	const { theme, setTheme, availableThemes } = useTheme()
+
+	const handleThemeSelect = (themeName) => {
+		setTheme(availableThemes.find((t) => t.name === themeName))
+	}
 	const { currentUser } = useAuth()
 	const [soundEnabled, setSoundEnabled] = useState(true)
 	const [keyboardSoundsEnabled, setKeyboardSoundsEnabled] = useState(true)
@@ -207,11 +231,11 @@ const Settings = ({ onClose }) => {
 				<ThemeGrid>
 					{availableThemes.map((themeName) => (
 						<ThemeButton
-							key={themeName}
-							$themeColor={theme.primary}
-							$active={themeName === theme}
-							onClick={() => setTheme(themeName)}>
-							{themeName}
+							key={themeName.name}
+							$themeColor={theme ? theme.primary : "#000000"}
+							$active={theme ? themeName === theme.name : false}
+							onClick={() => handleThemeSelect(themeName)}>
+							{themeName.name}
 						</ThemeButton>
 					))}
 				</ThemeGrid>
@@ -241,7 +265,9 @@ const Settings = ({ onClose }) => {
 						placeholder="Enter your username"
 					/>
 					{error && <ErrorMessage>{error}</ErrorMessage>}
-					<SuccessMessage $visible={showSuccess}>Username updated successfully!</SuccessMessage>
+					<SuccessMessage $visible={showSuccess}>
+						Username updated successfully!
+					</SuccessMessage>
 				</SettingsSection>
 			)}
 		</SettingsContainer>
