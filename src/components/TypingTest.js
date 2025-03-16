@@ -27,6 +27,7 @@ const TestHeader = styled.div`
 	width: 100%;
 	margin-bottom: 20px;
 	padding: 0;
+	position: relative;
 `
 const createAudioPool = (soundUrl, poolSize = 10) => {
 	const audioPool = Array(poolSize)
@@ -76,9 +77,13 @@ const TestOptions = styled.div`
 	display: flex;
 	gap: 10px;
 	flex-wrap: nowrap;
-	width: 100%;
+	width: 80%;
 	margin-bottom: 20px;
-	position: relative;
+	position: absolute; // Change to absolute positioning
+	left: 50%; // Center horizontally
+	transform: translateX(-50%) translateY(-30%); // Center and move upwards
+	justify-content: center; // Center the content
+	z-index: 10; // Ensure it's above other elements
 
 	@media (max-width: 768px) {
 		gap: 8px;
@@ -93,12 +98,12 @@ const OptionGroup = styled.div`
 	overflow-x: ${(props) => (props.noWrap ? "auto" : "visible")};
 	max-width: ${(props) => (props.expanded ? "calc(100% - 150px)" : "auto")};
 	flex-shrink: ${(props) => (props.expanded ? 1 : 0)};
+	justify-content: center; // Center the buttons within the group
 
 	@media (max-width: 768px) {
 		gap: 6px;
 	}
 `
-
 const OptionLabel = styled.span`
 	color: ${(props) => props.theme.text}80;
 	font-size: 14px;
@@ -183,13 +188,16 @@ const Timer = styled.div`
 	text-align: right;
 	width: auto;
 	min-width: 100px;
+	margin-left: auto; // This pushes it to the right
+	position: relative; // Keep it in the normal flow
+	z-index: 5;
 `
-
 const TextDisplayContainer = styled.div`
 	width: 100%;
 	height: 150px; /* Exactly 3 lines high */
 	position: relative;
 	overflow: hidden;
+	margin-top: 50px;
 	margin-bottom: 20px;
 	filter: ${(props) => (props.$isFocused ? "none" : "blur(8px)")};
 	opacity: ${(props) => (props.$isFocused ? 1 : 0.3)};
