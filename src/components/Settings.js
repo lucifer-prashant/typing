@@ -30,7 +30,7 @@ const SettingsContainer = styled.div`
 
 const BackButton = styled.button`
 	position: absolute;
-	top: 20px;
+	top: 36px;
 	left: 20px;
 	background: transparent;
 	border: none;
@@ -461,9 +461,7 @@ const Settings = ({ onClose }) => {
 				<SectionTitle>
 					{soundEnabled ? <FaVolumeUp /> : <FaVolumeMute />} Sound
 				</SectionTitle>
-				<ToggleButton
-					$active={soundEnabled}
-					onClick={() => setSoundEnabled(!soundEnabled)}>
+				<ToggleButton $active={soundEnabled} onClick={handleSoundToggle}>
 					{soundEnabled ? "Enabled" : "Disabled"}
 				</ToggleButton>
 			</SettingsSection>

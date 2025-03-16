@@ -15,6 +15,8 @@ const LeaderboardContainer = styled.div`
 	box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
 	backdrop-filter: blur(4px);
 	border: 1px solid rgba(255, 255, 255, 0.18);
+	overflow-y: auto;
+	max-height: calc(100vh - 40px);
 `
 
 const LeaderboardHeader = styled.div`

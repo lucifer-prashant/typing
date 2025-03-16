@@ -36,7 +36,7 @@ const gradientAnimation = keyframes`
 `
 
 const AppContainer = styled.div`
-	min-height: 100vh;
+	height: 100vh;
 	display: flex;
 	flex-direction: column;
 	align-items: center;
@@ -51,7 +51,8 @@ const AppContainer = styled.div`
 	color: ${(props) => props.theme.text};
 	padding: 20px;
 	position: relative;
-	overflow: hidden;
+	overflow: ${({ $isLeaderboard }) => ($isLeaderboard ? "auto" : "hidden")};
+	box-sizing: border-box;
 
 	&::before {
 		content: "";
@@ -286,7 +287,12 @@ function AppContent() {
 						<NavBar>
 							<NavButton
 								$active={currentView === "test"}
-								onClick={() => setCurrentView("test")}>
+								onClick={() => {
+									setCurrentView("test")
+									if (testResults) {
+										setTestResults(null)
+									}
+								}}>
 								<FaKeyboard /> Typing Test
 							</NavButton>
 							<NavButton

@@ -41,6 +41,8 @@ const ProfileContainer = styled.div`
 	margin: 0 auto;
 	padding: 20px;
 	color: white;
+	overflow-y: auto;
+	max-height: calc(100vh - 40px);
 `
 
 const ProfileHeader = styled.div`

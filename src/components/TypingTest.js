@@ -5,6 +5,9 @@ import { db } from "../firebase"
 import { collection, addDoc, serverTimestamp } from "firebase/firestore"
 import { generate } from "random-words"
 
+// Import audio file
+const typewriterSound = new Audio("/sounds/mixkit-typewriter-soft-hit-1366.wav")
+
 const TypingTestContainer = styled.div`
 	display: flex;
 	flex-direction: column;
@@ -335,6 +338,14 @@ const TypingTest = ({ onTestComplete }) => {
 	const [isFocused, setIsFocused] = useState(true)
 	const [textOffset, setTextOffset] = useState(0)
 	const [customInputFocused, setCustomInputFocused] = useState(false)
+	const [soundEnabled, setSoundEnabled] = useState(() => {
+		const savedSound = localStorage.getItem("soundEnabled")
+		return savedSound !== null ? savedSound === "true" : true
+	})
+
+	const [currentWPM, setCurrentWPM] = useState(0)
+	const [currentAccuracy, setCurrentAccuracy] = useState(0)
+	const [currentTimePerChar, setCurrentTimePerChar] = useState(0)
 
 	const inputRef = useRef(null)
 	const textDisplayRef = useRef(null)
@@ -344,6 +355,27 @@ const TypingTest = ({ onTestComplete }) => {
 	useEffect(() => {
 		resetTest()
 	}, [testType, testDuration, wordCount, difficulty, includePunctuation])
+	// Add this useEffect to update stats during typing
+	useEffect(() => {
+		if (testActive && startTime) {
+			const updateStats = () => {
+				setCurrentWPM(calculateWPM())
+				setCurrentAccuracy(calculateAccuracy())
+				setCurrentTimePerChar(calculateTimePerChar())
+			}
+
+			const statsInterval = setInterval(updateStats, 200) // Update 5 times per second
+			updateStats() // Initial update
+
+			return () => clearInterval(statsInterval)
+		}
+	}, [
+		testActive,
+		startTime,
+		typedCharacters.length,
+		currentInput,
+		currentWordIndex,
+	])
 
 	useEffect(() => {
 		let timerInterval
@@ -440,6 +472,7 @@ const TypingTest = ({ onTestComplete }) => {
 			wpm: calculateWPM(),
 			rawWpm: calculateRawWPM(),
 			accuracy: calculateAccuracy(),
+			timePerChar: calculateTimePerChar(),
 			charactersTyped: typedCharacters.length,
 			errorCount,
 			errorMap,
@@ -475,6 +508,14 @@ const TypingTest = ({ onTestComplete }) => {
 
 	const handleInputChange = (e) => {
 		const value = e.target.value
+
+		// Play typewriter sound if enabled and a character was added
+		if (soundEnabled && value.length > currentInput.length && testActive) {
+			typewriterSound.currentTime = 0
+			typewriterSound
+				.play()
+				.catch((err) => console.error("Error playing sound:", err))
+		}
 
 		// Prevent space as first character when starting test
 		if (!testActive && !testComplete) {
@@ -540,7 +581,8 @@ const TypingTest = ({ onTestComplete }) => {
 
 				setCurrentWordIndex((prev) => {
 					const nextIndex = prev + 1
-					if (nextIndex >= words.length - 10) {
+					// Only generate more words if we're in "time" mode
+					if (testType === "time" && nextIndex >= words.length - 10) {
 						// Generate more words when approaching the end
 						const newWords = generateWords(50, difficulty, includePunctuation)
 						setWords((words) => [...words, ...newWords])
@@ -563,6 +605,56 @@ const TypingTest = ({ onTestComplete }) => {
 		// Error analysis is already being done during typing
 	}
 
+	const calculateWPM = () => {
+		if (!startTime) return 0
+
+		// Get the time elapsed in milliseconds and minutes
+		const elapsedMs = Date.now() - startTime
+		const elapsedMinutes = elapsedMs / 60000
+
+		// Count all correctly typed characters
+		const correctChars = typedCharacters.filter((char) => char.correct).length
+
+		// Add the correct characters in the current word
+		const currentWordCorrect = currentInput.split("").filter((char, i) => {
+			return char === (words[currentWordIndex] || "")[i]
+		}).length
+
+		// Calculate WPM using the standard 5 characters = 1 word formula
+		const totalCorrectChars = correctChars + currentWordCorrect
+
+		// Add spaces between words (one for each completed word)
+		const spacesCount = currentWordIndex
+		const totalWithSpaces = totalCorrectChars + spacesCount
+
+		// Use actual time, even for very short tests
+		return Math.round(totalWithSpaces / 5 / Math.max(elapsedMinutes, 0.00001))
+	}
+
+	const calculateRawWPM = () => {
+		if (!startTime) return 0
+
+		// Get the time elapsed in milliseconds and minutes
+		const elapsedMs = Date.now() - startTime
+		const elapsedMinutes = elapsedMs / 60000
+
+		// Count all typed characters (correct or not)
+		const totalChars = typedCharacters.length
+
+		// Add the characters in the current word
+		const currentWordChars = currentInput.length
+
+		// Calculate raw WPM including all characters
+		const totalCharacters = totalChars + currentWordChars
+
+		// Add spaces between words (one for each completed word)
+		const spacesCount = currentWordIndex
+		const totalWithSpaces = totalCharacters + spacesCount
+
+		// Use actual time, even for very short tests
+		return Math.round(totalWithSpaces / 5 / Math.max(elapsedMinutes, 0.00001))
+	}
+
 	const calculateAccuracy = () => {
 		// Total characters typed (including current word)
 		const typedTotal = typedCharacters.length + currentInput.length
@@ -581,53 +673,24 @@ const TypingTest = ({ onTestComplete }) => {
 
 		return Math.round((totalCorrect / typedTotal) * 100)
 	}
-	const calculateWPM = () => {
+
+	// Add this function to calculate time per character
+	const calculateTimePerChar = () => {
 		if (!startTime) return 0
 
-		// Get the time elapsed in minutes
-		const elapsedMinutes = (Date.now() - startTime) / 60000
+		const elapsedMs = Date.now() - startTime
 
-		// Count all correctly typed characters
-		const correctChars = typedCharacters.filter((char) => char.correct).length
+		// Ensure minimum elapsed time (at least 500ms to avoid near-instant results)
+		const effectiveElapsed = Math.max(elapsedMs, 500)
 
-		// Add the correct characters in the current word
-		const currentWordCorrect = currentInput.split("").filter((char, i) => {
-			return char === (words[currentWordIndex] || "")[i]
-		}).length
-
-		// Calculate WPM using the standard 5 characters = 1 word formula
-		const totalCorrectChars = correctChars + currentWordCorrect
-
-		// Add spaces between words (one for each completed word)
+		// Ensure at least 1 valid character counted
+		const totalChars = typedCharacters.length + currentInput.length
 		const spacesCount = currentWordIndex
-		const totalWithSpaces = totalCorrectChars + spacesCount
+		const totalWithSpaces = Math.max(totalChars + spacesCount, 1) // At least 1
 
-		// No minimum time normalization - use actual time, even for very short tests
-		return Math.round(totalWithSpaces / 5 / Math.max(elapsedMinutes, 0.00001))
+		return Math.min(effectiveElapsed / totalWithSpaces, 9999) // Cap extreme values
 	}
 
-	const calculateRawWPM = () => {
-		if (!startTime) return 0
-
-		// Get the time elapsed in minutes
-		const elapsedMinutes = (Date.now() - startTime) / 60000
-
-		// Count all typed characters (correct or not)
-		const totalChars = typedCharacters.length
-
-		// Add the characters in the current word
-		const currentWordChars = currentInput.length
-
-		// Calculate raw WPM including all characters
-		const totalCharacters = totalChars + currentWordChars
-
-		// Add spaces between words (one for each completed word)
-		const spacesCount = currentWordIndex
-		const totalWithSpaces = totalCharacters + spacesCount
-
-		// No minimum time normalization - use actual time, even for very short tests
-		return Math.round(totalWithSpaces / 5 / Math.max(elapsedMinutes, 0.00001))
-	}
 	const handleButtonClick = (e) => {
 		e.preventDefault()
 		e.stopPropagation()

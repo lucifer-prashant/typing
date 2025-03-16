@@ -39,12 +39,22 @@ const ResultsContainer = styled.div`
 	padding: 20px;
 	margin-top: 20px;
 	color: ${(props) => props.theme.text};
+	overflow-y: hidden;
+	display: flex;
+	flex-direction: column;
+`
+
+const HeaderContainer = styled.div`
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	margin-bottom: 20px;
 `
 
 const ResultsHeader = styled.h2`
 	color: ${(props) => props.theme.primary};
-	margin-bottom: 20px;
 	text-align: center;
+	margin: 0;
 `
 
 const ResultsGrid = styled.div`
@@ -76,7 +86,7 @@ const ResultValue = styled.div`
 `
 
 const ChartContainer = styled.div`
-	margin-top: 30px;
+	margin-top: 10px;
 	height: 300px;
 `
 
@@ -86,12 +96,9 @@ const RestartButton = styled.button`
 	border: 1px solid ${(props) => props.theme.primary};
 	border-radius: 12px;
 	padding: 12px 24px;
-	margin-top: 20px;
 	cursor: pointer;
 	font-size: 16px;
 	transition: all 0.3s ease;
-	display: block;
-	margin: 30px auto 0;
 
 	&:hover {
 		background-color: ${(props) => props.theme.surface};
@@ -155,7 +162,10 @@ const TestResults = ({
 
 	return (
 		<ResultsContainer>
-			<ResultsHeader>Test Results</ResultsHeader>
+			<HeaderContainer>
+				<ResultsHeader>Test Results</ResultsHeader>
+				<RestartButton onClick={onRestart}>Restart Test</RestartButton>
+			</HeaderContainer>
 
 			<ResultsGrid>
 				<ResultCard>
@@ -241,8 +251,6 @@ const TestResults = ({
 					/>
 				</ChartContainer>
 			)}
-
-			<RestartButton onClick={onRestart}>Restart Test</RestartButton>
 		</ResultsContainer>
 	)
 }
