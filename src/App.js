@@ -75,7 +75,7 @@ const AppHeader = styled.header`
 	text-align: center;
 	width: 100%;
 	display: flex;
-	flex-direction: column;
+	flex-direction: row;
 	align-items: center;
 `
 
@@ -87,10 +87,14 @@ const glowAnimation = keyframes`
 
 const Title = styled.h1`
 	font-size: 4rem;
-	color: ${(props) => props.theme.primary};
+	color: ${(props) => props.theme.text};
 	margin-bottom: 10px;
 	font-weight: 800;
 	letter-spacing: 2px;
+	align-self: flex-start; // Add this to left-align within the flex container
+	// Remove width: 100%
+
+	// text-align: left; // This is redundant with align-self: flex-start
 
 	font-family: "JetBrains Mono";
 
@@ -101,7 +105,6 @@ const Title = styled.h1`
 		transform: perspective(500px) translateZ(10px);
 	}
 `
-
 const Subtitle = styled.p`
 	font-size: 1.2rem;
 	color: ${(props) => props.theme.text};
@@ -112,25 +115,23 @@ const NavBar = styled.nav`
 	display: flex;
 	justify-content: center;
 	gap: 20px;
-	margin-top: 20px;
-	width: 100%;
-	max-width: 600px;
-	background: ${(props) => props.theme.surface}CC; /* CC adds 80% opacity */
-	padding: 15px;
-	border-radius: 15px;
-	box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
-	backdrop-filter: blur(4px);
-	border: 1px solid ${(props) => props.theme.border}40; /* 40 adds 25% opacity */
+	margin-top: 5px;
+	margin-left: 10px;
+
+	// background: ${(props) => props.theme.surface}CC; /* CC adds 80% opacity */
+	// padding: 15px;
+	// border-radius: 15px;
+	// box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+	// backdrop-filter: blur(4px);
+	// border: 1px solid ${(props) =>
+		props.theme.border}40; /* 40 adds 25% opacity */
 `
 
 const NavButton = styled.button`
-	background-color: ${(props) =>
-		props.$active ? props.theme.primary : props.theme.surface};
-	color: ${(props) => props.theme.text};
-	border: 1px solid
-		${(props) => (props.$active ? props.theme.border : props.theme.border)};
-	border-radius: 12px;
-	padding: 12px 24px;
+	background-color: transparent; // Remove background
+	color: ${(props) => (props.$active ? props.theme.primary : props.theme.text)};
+	border: none; // Remove border
+	padding: 8px; // Reduce padding to just give some clickable area
 	cursor: pointer;
 	font-size: 16px;
 	transition: var(--transition-standard);
@@ -139,10 +140,9 @@ const NavButton = styled.button`
 	gap: 8px;
 
 	&:hover {
-		background-color: ${(props) => props.theme.primary};
-		border-color: ${(props) => props.theme.border};
+		color: ${(props) => props.theme.primary};
 		transform: translateY(-2px);
-		box-shadow: 0 5px 15px ${(props) => props.theme.primary}40;
+		// Remove box-shadow for cleaner look
 	}
 
 	&:active {
@@ -150,7 +150,7 @@ const NavButton = styled.button`
 	}
 
 	svg {
-		font-size: 18px;
+		font-size: 24px; // Make icon slightly larger for better visibility
 	}
 `
 const TopRightControls = styled.div`
@@ -288,18 +288,18 @@ function AppContent() {
 										setTestResults(null)
 									}
 								}}>
-								<FaKeyboard /> Typing Test
+								<FaKeyboard />
 							</NavButton>
 							<NavButton
 								$active={currentView === "leaderboard"}
 								onClick={() => setCurrentView("leaderboard")}>
-								<FaTrophy /> Leaderboard
+								<FaTrophy />
 							</NavButton>
 							{currentUser && (
 								<NavButton
 									$active={currentView === "profile"}
 									onClick={() => setCurrentView("profile")}>
-									<FaUser /> My Profile
+									<FaUser />
 								</NavButton>
 							)}
 						</NavBar>
