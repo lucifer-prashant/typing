@@ -56,25 +56,70 @@ const OptionLabel = styled.span`
 	font-size: 14px;
 `
 
-const CustomInput = styled.input`
+const Modal = styled.div`
+	position: fixed;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+	background-color: rgba(0, 0, 0, 0.5);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	z-index: 1000;
+`
+
+const ModalContent = styled.div`
 	background-color: ${(props) => props.theme.surface};
+	padding: 30px;
+	border-radius: 15px;
+	box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+	width: 300px;
+	display: flex;
+	flex-direction: column;
+	gap: 20px;
+`
+
+const ModalTitle = styled.h3`
+	margin: 0;
+	color: ${(props) => props.theme.text};
+`
+
+const ModalInput = styled.input`
+	background-color: ${(props) => props.theme.background};
 	color: ${(props) => props.theme.text};
 	border: 1px solid ${(props) => props.theme.border};
 	border-radius: 8px;
-	padding: 6px 10px;
-	width: 70px;
-	font-size: 13px;
-	text-decoration: none;
+	padding: 12px;
+	font-size: 16px;
+	width: 100%;
 
 	&:focus {
 		border-color: ${(props) => props.theme.primary};
 		outline: none;
 	}
+`
 
-	&::-webkit-inner-spin-button,
-	&::-webkit-outer-spin-button {
-		-webkit-appearance: none;
-		margin: 0;
+const ButtonGroup = styled.div`
+	display: flex;
+	justify-content: flex-end;
+	gap: 10px;
+`
+
+const ModalButton = styled.button`
+	background-color: ${(props) =>
+		props.primary ? props.theme.primary : props.theme.surface};
+	color: ${(props) => props.theme.text};
+	border: 1px solid
+		${(props) => (props.primary ? props.theme.primary : props.theme.border)};
+	border-radius: 8px;
+	padding: 8px 16px;
+	cursor: pointer;
+	font-size: 14px;
+
+	&:hover {
+		background-color: ${(props) =>
+			props.primary ? props.theme.primary + "CC" : props.theme.surface + "CC"};
 	}
 `
 
@@ -268,10 +313,12 @@ const generateWords = (
 }
 
 const TypingTest = ({ onTestComplete }) => {
+	const [showCustomModal, setShowCustomModal] = useState(false)
+	const [modalType, setModalType] = useState("")
+	const [modalValue, setModalValue] = useState("")
 	const [testType, setTestType] = useState("time")
 	const [testDuration, setTestDuration] = useState(30)
 	const [wordCount, setWordCount] = useState(25)
-	const [customValue, setCustomValue] = useState("")
 	const [difficulty, setDifficulty] = useState("medium")
 	const [activeOptionGroup, setActiveOptionGroup] = useState("difficulty")
 	const [includePunctuation, setIncludePunctuation] = useState(false)
@@ -287,6 +334,7 @@ const TypingTest = ({ onTestComplete }) => {
 	const [errorMap, setErrorMap] = useState({})
 	const [isFocused, setIsFocused] = useState(true)
 	const [textOffset, setTextOffset] = useState(0)
+	const [customInputFocused, setCustomInputFocused] = useState(false)
 
 	const inputRef = useRef(null)
 	const textDisplayRef = useRef(null)
@@ -427,36 +475,39 @@ const TypingTest = ({ onTestComplete }) => {
 
 	const handleInputChange = (e) => {
 		const value = e.target.value
+
+		// Prevent space as first character when starting test
 		if (!testActive && !testComplete) {
+			// Don't start test if first character is a space
+			if (value.trim() === "") {
+				return
+			}
 			startTest()
 			setCurrentInput(value)
 			return
 		}
 
 		if (testActive) {
+			// Handle space key for skipping words
 			if (value.endsWith(" ")) {
 				const currentTime = Date.now()
 				if (currentTime - lastSpaceTime < SPACE_DELAY) {
-					return // Ignore rapid space presses
+					return // Keep anti-spam protection
 				}
 
-				// Check if the current word is typed correctly before allowing space
+				// Get the typed word without the trailing space
 				const typedWord = value.trim()
 				const currentWord = words[currentWordIndex]
-				if (typedWord !== currentWord) {
-					setCurrentInput(typedWord) // Remove the space if word is not complete
+
+				// Only allow skipping if at least one character has been typed
+				if (typedWord.length === 0) {
+					setCurrentInput(typedWord) // Remove the space if no characters typed
 					return
 				}
 
 				setLastSpaceTime(currentTime)
-			}
 
-			setCurrentInput(value)
-
-			if (value.endsWith(" ") && currentWordIndex < words.length) {
-				const typedWord = value.trim()
-				const currentWord = words[currentWordIndex]
-
+				// Record typed characters for the current word
 				for (
 					let i = 0;
 					i < Math.max(typedWord.length, currentWord.length);
@@ -501,42 +552,82 @@ const TypingTest = ({ onTestComplete }) => {
 				if (testType === "words" && currentWordIndex + 1 >= wordCount) {
 					endTest()
 				}
+
+				return
 			}
+
+			setCurrentInput(value)
 		}
 	}
-
 	const analyzeErrors = () => {
 		// Error analysis is already being done during typing
 	}
 
 	const calculateAccuracy = () => {
-		if (typedCharacters.length === 0) return 0
-		const correctChars = typedCharacters.filter((char) => char.correct).length
-		return Math.round((correctChars / typedCharacters.length) * 100)
-	}
+		// Total characters typed (including current word)
+		const typedTotal = typedCharacters.length + currentInput.length
 
+		if (typedTotal === 0) return 0
+
+		// Count correct characters
+		const correctChars = typedCharacters.filter((char) => char.correct).length
+
+		// Add correct characters from current word
+		const currentWordCorrect = currentInput.split("").filter((char, i) => {
+			return char === (words[currentWordIndex] || "")[i]
+		}).length
+
+		const totalCorrect = correctChars + currentWordCorrect
+
+		return Math.round((totalCorrect / typedTotal) * 100)
+	}
 	const calculateWPM = () => {
-		if (!startTime || typedCharacters.length === 0) return 0
+		if (!startTime) return 0
+
+		// Get the time elapsed in minutes
 		const elapsedMinutes = (Date.now() - startTime) / 60000
-		const completedWordsChars = typedCharacters.length
-		const currentWordChars = currentInput.length
-		const totalCharacters = completedWordsChars + currentWordChars
+
+		// Count all correctly typed characters
+		const correctChars = typedCharacters.filter((char) => char.correct).length
+
+		// Add the correct characters in the current word
+		const currentWordCorrect = currentInput.split("").filter((char, i) => {
+			return char === (words[currentWordIndex] || "")[i]
+		}).length
+
+		// Calculate WPM using the standard 5 characters = 1 word formula
+		const totalCorrectChars = correctChars + currentWordCorrect
+
+		// Add spaces between words (one for each completed word)
 		const spacesCount = currentWordIndex
-		const totalWithSpaces = totalCharacters + spacesCount
-		const normalizedMinutes = Math.max(elapsedMinutes, 1 / 60)
-		return Math.round(totalWithSpaces / 5 / normalizedMinutes)
+		const totalWithSpaces = totalCorrectChars + spacesCount
+
+		// No minimum time normalization - use actual time, even for very short tests
+		return Math.round(totalWithSpaces / 5 / Math.max(elapsedMinutes, 0.00001))
 	}
 
 	const calculateRawWPM = () => {
-		if (!startTime || typedCharacters.length === 0) return 0
+		if (!startTime) return 0
+
+		// Get the time elapsed in minutes
 		const elapsedMinutes = (Date.now() - startTime) / 60000
-		const totalCharacters = typedCharacters.length
+
+		// Count all typed characters (correct or not)
+		const totalChars = typedCharacters.length
+
+		// Add the characters in the current word
+		const currentWordChars = currentInput.length
+
+		// Calculate raw WPM including all characters
+		const totalCharacters = totalChars + currentWordChars
+
+		// Add spaces between words (one for each completed word)
 		const spacesCount = currentWordIndex
 		const totalWithSpaces = totalCharacters + spacesCount
-		const normalizedMinutes = Math.max(elapsedMinutes, 1 / 60)
-		return Math.round(totalWithSpaces / 5 / normalizedMinutes)
-	}
 
+		// No minimum time normalization - use actual time, even for very short tests
+		return Math.round(totalWithSpaces / 5 / Math.max(elapsedMinutes, 0.00001))
+	}
 	const handleButtonClick = (e) => {
 		e.preventDefault()
 		e.stopPropagation()
@@ -546,48 +637,63 @@ const TypingTest = ({ onTestComplete }) => {
 
 	const handleTextDisplayClick = (e) => {
 		e.preventDefault()
-		inputRef.current.focus()
-		setIsFocused(true)
+		if (!customInputFocused) {
+			inputRef.current.focus()
+			setIsFocused(true)
+		}
+	}
+	const handleModalInputFocus = () => {
+		setCustomInputFocused(true)
 	}
 
-	const handleInputFocus = () => {
-		setIsFocused(true)
+	const handleModalInputBlur = () => {
+		setCustomInputFocused(false)
 	}
 
-	const handleInputBlur = () => {
-		setIsFocused(false)
+	const openCustomModal = (type) => {
+		setModalType(type)
+		setModalValue(
+			type === "time" ? testDuration.toString() : wordCount.toString()
+		)
+		setShowCustomModal(true)
 	}
 
-	const handleCustomValueChange = (e) => {
-		const value = e.target.value
-		setCustomValue(value)
-		const numValue = parseInt(value)
+	const handleModalInputKeyDown = (e) => {
+		if (e.key === "Enter") {
+			saveCustomValue()
+		}
+	}
+	const saveCustomValue = () => {
+		const numValue = parseInt(modalValue)
 		if (!isNaN(numValue) && numValue > 0) {
-			if (activeOptionGroup === "time") {
+			if (modalType === "time") {
 				setTestDuration(numValue)
 				setTestType("time")
-			} else if (activeOptionGroup === "words") {
+			} else {
 				setWordCount(numValue)
 				setTestType("words")
 			}
 		}
-		e.stopPropagation()
+		setShowCustomModal(false)
+		inputRef.current.focus()
 	}
 
 	useEffect(() => {
-		if (inputRef.current) {
+		if (inputRef.current && !customInputFocused) {
 			inputRef.current.focus()
 		}
 
 		const handleWindowFocus = () => {
-			if (inputRef.current) {
+			if (inputRef.current && !customInputFocused) {
 				inputRef.current.focus()
 				setIsFocused(true)
 			}
 		}
 
 		const handleWindowBlur = () => {
-			setIsFocused(false)
+			if (!customInputFocused) {
+				setIsFocused(false)
+			}
 		}
 
 		window.addEventListener("focus", handleWindowFocus)
@@ -597,10 +703,18 @@ const TypingTest = ({ onTestComplete }) => {
 			window.removeEventListener("focus", handleWindowFocus)
 			window.removeEventListener("blur", handleWindowBlur)
 		}
-	}, [])
+	}, [customInputFocused])
 
 	const handleRestart = () => {
 		resetTest()
+	}
+
+	const handleInputBlur = () => {
+		setIsFocused(false)
+	}
+
+	const handleInputFocus = () => {
+		setIsFocused(true)
 	}
 
 	return (
@@ -703,15 +817,13 @@ const TypingTest = ({ onTestComplete }) => {
 								}}>
 								60s
 							</OptionButton>
-							<CustomInput
-								type="number"
-								placeholder="Custom"
-								value={customValue}
-								onChange={handleCustomValueChange}
-								min="1"
-								max="999"
-								onClick={(e) => e.stopPropagation()}
-							/>
+							<OptionButton
+								onClick={(e) => {
+									handleButtonClick(e)
+									openCustomModal("time")
+								}}>
+								Custom
+							</OptionButton>
 						</OptionGroup>
 					)}
 
@@ -742,15 +854,13 @@ const TypingTest = ({ onTestComplete }) => {
 								}}>
 								100
 							</OptionButton>
-							<CustomInput
-								type="number"
-								placeholder="Custom"
-								value={customValue}
-								onChange={handleCustomValueChange}
-								min="1"
-								max="999"
-								onClick={(e) => e.stopPropagation()}
-							/>
+							<OptionButton
+								onClick={(e) => {
+									handleButtonClick(e)
+									openCustomModal("words")
+								}}>
+								Custom
+							</OptionButton>
 						</OptionGroup>
 					)}
 				</TestOptions>
@@ -819,6 +929,34 @@ const TypingTest = ({ onTestComplete }) => {
 
 			{(testComplete || testActive) && (
 				<RestartButton onClick={handleRestart}>Restart Test</RestartButton>
+			)}
+
+			{showCustomModal && (
+				<Modal onClick={() => setShowCustomModal(false)}>
+					<ModalContent onClick={(e) => e.stopPropagation()}>
+						<ModalTitle>
+							Enter custom{" "}
+							{modalType === "time" ? "duration (seconds)" : "word count"}
+						</ModalTitle>
+						<ModalInput
+							type="number"
+							value={modalValue}
+							onChange={(e) => setModalValue(e.target.value)}
+							onFocus={handleModalInputFocus}
+							onBlur={handleModalInputBlur}
+							onKeyDown={handleModalInputKeyDown}
+							autoFocus
+						/>
+						<ButtonGroup>
+							<ModalButton onClick={() => setShowCustomModal(false)}>
+								Cancel
+							</ModalButton>
+							<ModalButton primary onClick={saveCustomValue}>
+								Save
+							</ModalButton>
+						</ButtonGroup>
+					</ModalContent>
+				</Modal>
 			)}
 		</TypingTestContainer>
 	)
