@@ -26,7 +26,50 @@ const TestHeader = styled.div`
 	margin-bottom: 20px;
 	padding: 0;
 `
+const createAudioPool = (soundUrl, poolSize = 10) => {
+	const audioPool = Array(poolSize)
+		.fill()
+		.map(() => {
+			const audio = new Audio(soundUrl)
+			audio.volume = 0.5 // Adjust volume if needed
+			return audio
+		})
+	let currentIndex = 0
 
+	return () => {
+		// Find an audio object that's not currently playing
+		let attempts = 0
+		let sound = audioPool[currentIndex]
+
+		// Try to find an audio that's not currently playing
+		while (attempts < poolSize && !sound.paused && !sound.ended) {
+			currentIndex = (currentIndex + 1) % poolSize
+			sound = audioPool[currentIndex]
+			attempts++
+		}
+
+		// If all sounds are playing, just use the next one
+		if (attempts >= poolSize) {
+			currentIndex = (currentIndex + 1) % poolSize
+			sound = audioPool[currentIndex]
+		}
+
+		// Reset the audio to start
+		sound.currentTime = 0
+
+		// Use Promise to handle playback errors silently
+		const playPromise = sound.play()
+		if (playPromise !== undefined) {
+			playPromise.catch((err) => {
+				// Silence the error - this happens when sounds overlap too quickly
+			})
+		}
+
+		// Move to the next sound in the pool for next time
+		currentIndex = (currentIndex + 1) % poolSize
+		return sound
+	}
+}
 const TestOptions = styled.div`
 	display: flex;
 	gap: 10px;
@@ -263,9 +306,8 @@ const Character = styled.span`
 		width: 100%;
 		height: 3px;
 		background-color: ${(props) =>
-			props.status === "current" ? props.theme.primary : "transparent"};
-		animation: ${(props) =>
-			props.status === "current" ? "blink 1s infinite" : "none"};
+			props.isCursor ? props.theme.primary : "transparent"};
+		animation: ${(props) => (props.isCursor ? "blink 1s infinite" : "none")};
 	}
 
 	@keyframes blink {
@@ -316,6 +358,8 @@ const generateWords = (
 }
 
 const TypingTest = ({ onTestComplete }) => {
+	const [backspacedFromNewWord, setBackspacedFromNewWord] = useState(false)
+	const [playSoundFn, setPlaySoundFn] = useState(null)
 	const [showCustomModal, setShowCustomModal] = useState(false)
 	const [modalType, setModalType] = useState("")
 	const [modalValue, setModalValue] = useState("")
@@ -351,6 +395,16 @@ const TypingTest = ({ onTestComplete }) => {
 	const textDisplayRef = useRef(null)
 	const textContainerRef = useRef(null)
 	const { currentUser } = useAuth()
+	useEffect(() => {
+		setPlaySoundFn(() =>
+			createAudioPool("/sounds/mixkit-typewriter-soft-click-1125.wav")
+		)
+
+		// Clean up function
+		return () => {
+			setPlaySoundFn(null)
+		}
+	}, [])
 
 	useEffect(() => {
 		resetTest()
@@ -506,15 +560,18 @@ const TypingTest = ({ onTestComplete }) => {
 	const [lastSpaceTime, setLastSpaceTime] = useState(0)
 	const SPACE_DELAY = 100 // Minimum delay between space presses in milliseconds
 
+	// Modify the handleInputChange function to allow backspacing to previous words
 	const handleInputChange = (e) => {
 		const value = e.target.value
 
 		// Play typewriter sound if enabled and a character was added
-		if (soundEnabled && value.length > currentInput.length && testActive) {
-			typewriterSound.currentTime = 0
-			typewriterSound
-				.play()
-				.catch((err) => console.error("Error playing sound:", err))
+		if (
+			soundEnabled &&
+			value.length > currentInput.length &&
+			testActive &&
+			playSoundFn
+		) {
+			playSoundFn()
 		}
 
 		// Prevent space as first character when starting test
@@ -529,12 +586,53 @@ const TypingTest = ({ onTestComplete }) => {
 		}
 
 		if (testActive) {
+			// If we're typing a character after backspacing from a new word
+			// and the input equals the current word, automatically advance to next word
+			if (
+				backspacedFromNewWord &&
+				value === words[currentWordIndex] &&
+				value.length === words[currentWordIndex].length
+			) {
+				// Auto-advance to next word
+				const currentWord = words[currentWordIndex]
+
+				// Record typed characters for the current word
+				for (let i = 0; i < currentWord.length; i++) {
+					const typed = currentWord[i]
+					const actual = currentWord[i]
+
+					setTypedCharacters((prev) => [
+						...prev,
+						{
+							typed,
+							actual,
+							correct: typed === actual,
+							wordIndex: currentWordIndex,
+							charIndex: i,
+						},
+					])
+				}
+
+				setCurrentWordIndex(currentWordIndex + 1)
+				setCurrentInput("")
+				setBackspacedFromNewWord(false)
+
+				if (testType === "words" && currentWordIndex + 1 >= wordCount) {
+					endTest()
+				}
+
+				return
+			}
+
 			// Handle space key for skipping words
 			if (value.endsWith(" ")) {
 				const currentTime = Date.now()
 				if (currentTime - lastSpaceTime < SPACE_DELAY) {
 					return // Keep anti-spam protection
 				}
+
+				// Reset backspaced flag if we're advancing with space
+				setBackspacedFromNewWord(false)
 
 				// Get the typed word without the trailing space
 				const typedWord = value.trim()
@@ -599,6 +697,134 @@ const TypingTest = ({ onTestComplete }) => {
 			}
 
 			setCurrentInput(value)
+		}
+	}
+
+	const [wordCompletionState, setWordCompletionState] = useState({})
+	useEffect(() => {
+		if (
+			testActive &&
+			backspacedFromNewWord &&
+			currentInput === words[currentWordIndex]
+		) {
+			// If we're editing a word after backspacing and complete it perfectly, be ready to auto-advance
+			// The actual advancing happens in handleInputChange when the next character is typed
+			// This is just preparing the state
+		}
+	}, [currentInput, currentWordIndex, words, testActive, backspacedFromNewWord])
+	useEffect(() => {
+		if (testActive && currentInput.length === words[currentWordIndex]?.length) {
+			// Mark this word as completed
+			setWordCompletionState((prev) => ({
+				...prev,
+				[currentWordIndex]: true,
+			}))
+		}
+	}, [currentInput, currentWordIndex, words, testActive])
+	const handleKeyDown = (e) => {
+		// Handle backspace key
+		if (e.key === "Backspace") {
+			// If we're not at the start of the input, just let the normal backspace behavior happen
+			if (currentInput.length > 0) {
+				return // Allow normal backspace behavior within the word
+			}
+
+			// If we're at the start of the input and not at the first word, move to the previous word
+			if (currentWordIndex > 0) {
+				e.preventDefault() // Prevent default backspace behavior
+
+				// Get the previous word
+				const previousWord = words[currentWordIndex - 1]
+
+				// Flag that we backspaced from a new word
+				setBackspacedFromNewWord(true)
+
+				// Move back to the previous word
+				setCurrentWordIndex(currentWordIndex - 1)
+				setCurrentInput(previousWord)
+
+				// Remove the characters from the typed characters array
+				setTypedCharacters((chars) => {
+					// Find where the previous word starts in the array
+					const wordStartIndex = chars.findIndex(
+						(char) => char.wordIndex === currentWordIndex - 1
+					)
+
+					// If found, remove all characters from that word
+					if (wordStartIndex !== -1) {
+						return chars.slice(0, wordStartIndex)
+					}
+					return chars
+				})
+			}
+		}
+
+		// Handle space key for skipping words
+		if (e.key === " ") {
+			const currentTime = Date.now()
+			if (currentTime - lastSpaceTime < SPACE_DELAY) {
+				return // Keep anti-spam protection
+			}
+
+			// Reset backspaced flag if we're advancing with space
+			setBackspacedFromNewWord(false)
+
+			// Get the typed word without the trailing space
+			const typedWord = currentInput.trim()
+			const currentWord = words[currentWordIndex]
+
+			// Only allow skipping if at least one character has been typed
+			if (typedWord.length === 0) {
+				setCurrentInput(typedWord) // Remove the space if no characters typed
+				return
+			}
+
+			setLastSpaceTime(currentTime)
+
+			// Record typed characters for the current word
+			for (let i = 0; i < Math.max(typedWord.length, currentWord.length); i++) {
+				const typed = typedWord[i] || ""
+				const actual = currentWord[i] || ""
+
+				setTypedCharacters((prev) => [
+					...prev,
+					{
+						typed,
+						actual,
+						correct: typed === actual,
+						wordIndex: currentWordIndex,
+						charIndex: i,
+					},
+				])
+
+				if (typed !== actual) {
+					setErrorCount((prev) => prev + 1)
+					if (typed) {
+						setErrorMap((prev) => ({
+							...prev,
+							[typed]: (prev[typed] || 0) + 1,
+						}))
+					}
+				}
+			}
+
+			setCurrentWordIndex((prev) => {
+				const nextIndex = prev + 1
+				// Only generate more words if we're in "time" mode
+				if (testType === "time" && nextIndex >= words.length - 10) {
+					// Generate more words when approaching the end
+					const newWords = generateWords(50, difficulty, includePunctuation)
+					setWords((words) => [...words, ...newWords])
+				}
+				return nextIndex
+			})
+			setCurrentInput("")
+
+			if (testType === "words" && currentWordIndex + 1 >= wordCount) {
+				endTest()
+			}
+
+			return
 		}
 	}
 	const analyzeErrors = () => {
@@ -771,7 +997,25 @@ const TypingTest = ({ onTestComplete }) => {
 	const handleRestart = () => {
 		resetTest()
 	}
+	const SpaceCursor = styled.span`
+		position: absolute;
+		right: -16px;
+		bottom: 0;
+		width: 12px;
+		height: 3px;
+		background-color: ${(props) => props.theme.primary};
+		animation: blink 1s infinite;
 
+		@keyframes blink {
+			0%,
+			100% {
+				opacity: 1;
+			}
+			50% {
+				opacity: 0;
+			}
+		}
+	`
 	const handleInputBlur = () => {
 		setIsFocused(false)
 	}
@@ -947,6 +1191,15 @@ const TypingTest = ({ onTestComplete }) => {
 						<Word key={index} style={{ opacity: 1 }}>
 							{word.split("").map((char, charIndex) => {
 								let status = "default"
+								const isLastCharInWord = charIndex === word.length - 1
+								const wordComplete = index < currentWordIndex
+
+								// Determine if this character should have the cursor
+								const isCursor =
+									index === currentWordIndex &&
+									charIndex === currentInput.length &&
+									currentInput.length < word.length // Only show character cursor if we're not at the end of the word
+
 								if (index === currentWordIndex) {
 									if (charIndex < currentInput.length) {
 										status =
@@ -958,18 +1211,26 @@ const TypingTest = ({ onTestComplete }) => {
 									const wordStart = typedCharacters.findIndex(
 										(char) => char.wordIndex === index
 									)
-									const wordLength = word.length
 									const charData = typedCharacters[wordStart + charIndex]
 									if (charData) {
 										status = charData.typed === char ? "correct" : "incorrect"
 									}
 								}
+
 								return (
-									<Character key={charIndex} status={status}>
+									<Character
+										key={charIndex}
+										status={status}
+										isLastCharInWord={isLastCharInWord}
+										wordComplete={wordComplete}
+										isCursor={isCursor}>
 										{char}
 									</Character>
 								)
 							})}
+							{/* Show space cursor when at the end of a word */}
+							{index === currentWordIndex &&
+								currentInput.length === word.length && <SpaceCursor />}
 						</Word>
 					))}
 				</TextDisplay>
@@ -984,6 +1245,7 @@ const TypingTest = ({ onTestComplete }) => {
 				type="text"
 				value={currentInput}
 				onChange={handleInputChange}
+				onKeyDown={handleKeyDown}
 				onBlur={handleInputBlur}
 				onFocus={handleInputFocus}
 				disabled={testComplete}
