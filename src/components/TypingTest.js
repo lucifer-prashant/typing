@@ -187,7 +187,7 @@ const Timer = styled.div`
 
 const TextDisplayContainer = styled.div`
 	width: 100%;
-	height: 120px;
+	height: 150px; /* Exactly 3 lines high */
 	position: relative;
 	overflow: hidden;
 	margin-bottom: 20px;
@@ -477,42 +477,82 @@ const TypingTest = ({ onTestComplete }) => {
 		return () => clearInterval(timerInterval)
 	}, [testActive, testType, timeLeft])
 
+	const [lineMap, setLineMap] = useState([])
+	const lastLineIndexRef = useRef(0)
+
+	// Replace the existing scrolling useEffect with this precise implementation
 	useEffect(() => {
-		if (textDisplayRef.current && textContainerRef.current) {
-			const lineHeight = 42
-			const containerHeight = textContainerRef.current.clientHeight
-			const visibleLines = Math.floor(containerHeight / lineHeight)
+		if (!textDisplayRef.current || !textContainerRef.current || !testActive)
+			return
 
-			let currentLineTop = 0
-			let foundCurrentWord = false
+		const lineHeight = 42 // Height of each word line
+		const containerHeight = textContainerRef.current.clientHeight
+		const maxVisibleLines = Math.floor(containerHeight / lineHeight)
 
-			if (textDisplayRef.current.children[currentWordIndex]) {
-				const currentWordElement =
-					textDisplayRef.current.children[currentWordIndex]
-				const rect = currentWordElement.getBoundingClientRect()
-				const containerRect = textContainerRef.current.getBoundingClientRect()
-				currentLineTop = rect.top - containerRect.top
+		// Only run this once we have words to analyze
+		const words = Array.from(textDisplayRef.current.children)
+		if (words.length === 0 || currentWordIndex >= words.length) return
 
-				if (currentLineTop > containerHeight - lineHeight) {
-					const linesToScroll = Math.ceil(
-						(currentLineTop - (containerHeight - lineHeight)) / lineHeight
-					)
-					setTextOffset((prev) => prev + linesToScroll * lineHeight)
+		// Calculate the current line map (which words belong to which lines)
+		const calcLineMap = () => {
+			const lineMap = []
+			const containerRect = textContainerRef.current.getBoundingClientRect()
+
+			// Create an absolute position mapping ignoring current scroll position
+			words.forEach((word, index) => {
+				const rect = word.getBoundingClientRect()
+				// Calculate absolute position (add back the current scroll offset)
+				const absTop = rect.top - containerRect.top + textOffset
+				const lineIndex = Math.floor(absTop / lineHeight)
+
+				// Expand array if needed
+				while (lineMap.length <= lineIndex) {
+					lineMap.push([])
 				}
 
-				foundCurrentWord = true
-			}
+				// Add word to appropriate line
+				lineMap[lineIndex].push(index)
+			})
 
-			if (!foundCurrentWord && currentWordIndex > 0 && words.length > 0) {
-				const estimatedLines = Math.ceil(
-					currentWordIndex / (textContainerRef.current.clientWidth / 100)
-				)
-				if (estimatedLines > visibleLines) {
-					setTextOffset((prev) => prev + lineHeight)
-				}
+			return lineMap
+		}
+
+		// Get updated line mapping
+		const newLineMap = calcLineMap()
+		setLineMap(newLineMap)
+
+		// Find which line contains our current word
+		let currentLineIndex = -1
+		for (let i = 0; i < newLineMap.length; i++) {
+			if (newLineMap[i].includes(currentWordIndex)) {
+				currentLineIndex = i
+				break
 			}
 		}
-	}, [currentWordIndex, words.length])
+
+		if (currentLineIndex < 0) return
+
+		// Check if we've moved to a new line
+		if (currentLineIndex > lastLineIndexRef.current) {
+			// We've moved to a new line
+
+			// If we're moving to the third line (index 2) or beyond
+			if (currentLineIndex >= 2) {
+				// Scroll exactly one line so the current line becomes the second visible line
+				// This ensures we're always typing on the second line
+				setTextOffset((currentLineIndex - 1) * lineHeight)
+			}
+		} else if (
+			currentLineIndex < lastLineIndexRef.current &&
+			currentLineIndex <= 1
+		) {
+			// We've moved back to the first or second line, reset scrolling
+			setTextOffset(0)
+		}
+
+		// Update our reference to the current line
+		lastLineIndexRef.current = currentLineIndex
+	}, [currentWordIndex, testActive])
 
 	const resetTest = () => {
 		const generatedWords = generateWords(
