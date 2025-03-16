@@ -7,6 +7,8 @@ import { generate } from "random-words"
 
 // Import audio file
 const typewriterSound = new Audio("/sounds/mixkit-typewriter-soft-hit-1366.wav")
+const backspaceSound = new Audio("/sounds/mixkit-typewriter-soft-hit-1125.wav")
+const wrongCharSound = new Audio("/sounds/wrong-char-placeholder.wav")
 
 const TypingTestContainer = styled.div`
 	display: flex;
@@ -356,10 +358,30 @@ const generateWords = (
 	}
 	return words
 }
+const SpaceCursor = styled.span`
+	position: absolute;
+	right: -16px;
+	bottom: 0;
+	width: 12px;
+	height: 3px;
+	background-color: ${(props) => props.theme.primary};
+	animation: blink 1s infinite;
 
+	@keyframes blink {
+		0%,
+		100% {
+			opacity: 1;
+		}
+		50% {
+			opacity: 0;
+		}
+	}
+`
 const TypingTest = ({ onTestComplete }) => {
 	const [backspacedFromNewWord, setBackspacedFromNewWord] = useState(false)
+	const [playWrongSound, setPlayWrongSound] = useState(null)
 	const [playSoundFn, setPlaySoundFn] = useState(null)
+	const [playBackspaceSound, setPlayBackspaceSound] = useState(null)
 	const [showCustomModal, setShowCustomModal] = useState(false)
 	const [modalType, setModalType] = useState("")
 	const [modalValue, setModalValue] = useState("")
@@ -396,13 +418,21 @@ const TypingTest = ({ onTestComplete }) => {
 	const textContainerRef = useRef(null)
 	const { currentUser } = useAuth()
 	useEffect(() => {
+		// Initialize audio pools
 		setPlaySoundFn(() =>
 			createAudioPool("/sounds/mixkit-typewriter-soft-click-1125.wav")
 		)
+		setPlayBackspaceSound(() =>
+			createAudioPool("/sounds/mixkit-typewriter-soft-hit-1366.wav")
+		)
+
+		setPlayWrongSound(() => createAudioPool("/sounds/punch-140236.mp3")) // Ensure this path is correct
 
 		// Clean up function
 		return () => {
 			setPlaySoundFn(null)
+			setPlayBackspaceSound(null)
+			setPlayWrongSound(null)
 		}
 	}, [])
 
@@ -564,14 +594,23 @@ const TypingTest = ({ onTestComplete }) => {
 	const handleInputChange = (e) => {
 		const value = e.target.value
 
-		// Play typewriter sound if enabled and a character was added
-		if (
-			soundEnabled &&
-			value.length > currentInput.length &&
-			testActive &&
-			playSoundFn
-		) {
-			playSoundFn()
+		// Handle character addition
+		if (value.length > currentInput.length) {
+			const newChar = value[value.length - 1]
+			const expectedChar = words[currentWordIndex]?.[currentInput.length]
+
+			// Determine if the character is correct or incorrect
+			const isCorrect = newChar === expectedChar
+
+			// Play appropriate sound if enabled
+			if (soundEnabled && testActive) {
+				if (isCorrect && playSoundFn) {
+					playSoundFn() // Play correct character sound
+				} else if (!isCorrect && playWrongSound && newChar !== " ") {
+					// Play wrong character sound only if it's not a space
+					playWrongSound()
+				}
+			}
 		}
 
 		// Prevent space as first character when starting test
@@ -724,6 +763,9 @@ const TypingTest = ({ onTestComplete }) => {
 	const handleKeyDown = (e) => {
 		// Handle backspace key
 		if (e.key === "Backspace") {
+			if (soundEnabled && playBackspaceSound) {
+				playBackspaceSound()
+			}
 			// If we're not at the start of the input, just let the normal backspace behavior happen
 			if (currentInput.length > 0) {
 				return // Allow normal backspace behavior within the word
@@ -997,25 +1039,7 @@ const TypingTest = ({ onTestComplete }) => {
 	const handleRestart = () => {
 		resetTest()
 	}
-	const SpaceCursor = styled.span`
-		position: absolute;
-		right: -16px;
-		bottom: 0;
-		width: 12px;
-		height: 3px;
-		background-color: ${(props) => props.theme.primary};
-		animation: blink 1s infinite;
 
-		@keyframes blink {
-			0%,
-			100% {
-				opacity: 1;
-			}
-			50% {
-				opacity: 0;
-			}
-		}
-	`
 	const handleInputBlur = () => {
 		setIsFocused(false)
 	}
@@ -1138,6 +1162,14 @@ const TypingTest = ({ onTestComplete }) => {
 						<OptionGroup noWrap expanded>
 							<OptionLabel>Words:</OptionLabel>
 							<OptionButton
+								active={wordCount === 10}
+								onClick={(e) => {
+									handleButtonClick(e)
+									setWordCount(10)
+								}}>
+								10
+							</OptionButton>
+							<OptionButton
 								active={wordCount === 25}
 								onClick={(e) => {
 									handleButtonClick(e)
@@ -1152,14 +1184,6 @@ const TypingTest = ({ onTestComplete }) => {
 									setWordCount(50)
 								}}>
 								50
-							</OptionButton>
-							<OptionButton
-								active={wordCount === 100}
-								onClick={(e) => {
-									handleButtonClick(e)
-									setWordCount(100)
-								}}>
-								100
 							</OptionButton>
 							<OptionButton
 								onClick={(e) => {
