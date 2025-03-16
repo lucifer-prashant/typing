@@ -93,16 +93,11 @@ const Title = styled.h1`
 	letter-spacing: 2px;
 
 	font-family: "JetBrains Mono";
-	text-shadow:
-		0 2px 4px rgba(0, 0, 0, 0.3),
-		0 0 15px ${(props) => props.theme.headerGlow + "80"};
+
 	transform: perspective(500px) translateZ(0);
 	transition: all 0.3s ease;
 
 	&:hover {
-		text-shadow:
-			0 4px 8px rgba(0, 0, 0, 0.4),
-			0 0 20px ${(props) => props.theme.headerGlow + "CC"};
 		transform: perspective(500px) translateZ(10px);
 	}
 `
@@ -280,9 +275,9 @@ function AppContent() {
 				<>
 					<AppHeader>
 						<Title>Speed Typer</Title>
-						<Subtitle>
+						{/* <Subtitle>
 							Test and improve your typing speed with common English words
-						</Subtitle>
+						</Subtitle> */}
 
 						<NavBar>
 							<NavButton
