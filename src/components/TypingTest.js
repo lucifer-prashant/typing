@@ -79,34 +79,110 @@ const TestOptions = styled.div`
 	flex-wrap: nowrap;
 	width: 80%;
 	margin-bottom: 20px;
-	position: absolute; // Change to absolute positioning
-	left: 50%; // Center horizontally
-	transform: translateX(-50%) translateY(-30%); // Center and move upwards
-	justify-content: center; // Center the content
-	z-index: 10; // Ensure it's above other elements
+	position: absolute;
+	left: 50%;
+	transform: translateX(-50%) translateY(-30%);
+	justify-content: center;
+	z-index: 10;
+	background: ${(props) => props.theme.surface}CC;
+	padding: 12px 20px;
+	border-radius: 16px;
+	box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+	backdrop-filter: blur(8px);
+	border: 1px solid ${(props) => props.theme.border}40;
 
 	@media (max-width: 768px) {
-		gap: 8px;
+		gap: 12px;
+		padding: 10px 16px;
 	}
 `
 
 const OptionGroup = styled.div`
 	display: flex;
-	gap: 8px;
+	gap: 10px;
 	align-items: center;
 	flex-wrap: ${(props) => (props.noWrap ? "nowrap" : "wrap")};
 	overflow-x: ${(props) => (props.noWrap ? "auto" : "visible")};
 	max-width: ${(props) => (props.expanded ? "calc(100% - 150px)" : "auto")};
 	flex-shrink: ${(props) => (props.expanded ? 1 : 0)};
-	justify-content: center; // Center the buttons within the group
+	justify-content: center;
+	position: relative;
+	padding: 4px;
+	border-radius: 12px;
+	transition: all 0.3s ease;
+
+	&:not(:last-child) {
+		border-right: 1px solid ${(props) => props.theme.border}20;
+		padding-right: 16px;
+		margin-right: 6px;
+	}
 
 	@media (max-width: 768px) {
-		gap: 6px;
+		gap: 8px;
+		padding: 3px;
 	}
 `
+
 const OptionLabel = styled.span`
-	color: ${(props) => props.theme.text}80;
+	color: ${(props) => props.theme.text}CC;
 	font-size: 14px;
+	font-weight: 500;
+	text-transform: uppercase;
+	letter-spacing: 0.5px;
+	margin-right: 4px;
+	transition: color 0.3s ease;
+`
+
+const OptionButton = styled.button`
+	background-color: ${(props) =>
+		props.active ? props.theme.primary + "CC" : "transparent"};
+	color: ${(props) =>
+		props.active ? props.theme.text : props.theme.text + "CC"};
+	border: 1px solid
+		${(props) => (props.active ? props.theme.primary : "transparent")};
+	border-radius: 10px;
+	padding: 8px 16px;
+	cursor: pointer;
+	transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+	font-size: 13px;
+	font-weight: ${(props) => (props.active ? "600" : "400")};
+	text-decoration: none;
+	position: relative;
+	overflow: hidden;
+
+	&:hover {
+		background-color: ${(props) =>
+			props.active ? props.theme.primary + "CC" : props.theme.surface};
+		border-color: ${(props) => props.theme.primary};
+		color: ${(props) => props.theme.text};
+		transform: translateY(-1px);
+		box-shadow: 0 4px 12px ${(props) => props.theme.primary}30;
+	}
+
+	&:active {
+		transform: translateY(0);
+	}
+
+	&::before {
+		content: "";
+		position: absolute;
+		top: 0;
+		left: 0;
+		right: 0;
+		bottom: 0;
+		background: ${(props) => props.theme.primary};
+		opacity: 0;
+		transition: opacity 0.2s ease;
+	}
+
+	&:hover::before {
+		opacity: 0.1;
+	}
+
+	@media (max-width: 768px) {
+		padding: 6px 12px;
+		font-size: 12px;
+	}
 `
 
 const Modal = styled.div`
@@ -223,7 +299,7 @@ const TextDisplay = styled.div`
 	transition: top 0.2s ease;
 `
 
-const OptionButton = styled.button`
+const EnhancedOptionButton = styled.button`
 	background-color: ${(props) =>
 		props.active ? props.theme.primary : props.theme.surface};
 	color: ${(props) => (props.active ? props.theme.text : props.theme.text)};
@@ -1101,15 +1177,15 @@ const TypingTest = ({ onTestComplete }) => {
 			<TestHeader>
 				<TestOptions>
 					<OptionGroup>
-						<OptionButton
+						<EnhancedOptionButton
 							active={includePunctuation}
 							onClick={(e) => {
 								handleButtonClick(e)
 								setIncludePunctuation(!includePunctuation)
 							}}>
 							Punctuation {includePunctuation ? "On" : "Off"}
-						</OptionButton>
-						<OptionButton
+						</EnhancedOptionButton>
+						<EnhancedOptionButton
 							active={activeOptionGroup === "difficulty"}
 							onClick={(e) => {
 								handleButtonClick(e)
@@ -1118,38 +1194,38 @@ const TypingTest = ({ onTestComplete }) => {
 							{activeOptionGroup === "difficulty"
 								? "Difficulty"
 								: difficulty.charAt(0).toUpperCase() + difficulty.slice(1)}
-						</OptionButton>
+						</EnhancedOptionButton>
 						{activeOptionGroup === "difficulty" && (
 							<>
-								<OptionButton
+								<EnhancedOptionButton
 									active={difficulty === "easy"}
 									onClick={(e) => {
 										handleButtonClick(e)
 										setDifficulty("easy")
 									}}>
 									Easy
-								</OptionButton>
-								<OptionButton
+								</EnhancedOptionButton>
+								<EnhancedOptionButton
 									active={difficulty === "medium"}
 									onClick={(e) => {
 										handleButtonClick(e)
 										setDifficulty("medium")
 									}}>
 									Medium
-								</OptionButton>
-								<OptionButton
+								</EnhancedOptionButton>
+								<EnhancedOptionButton
 									active={difficulty === "hard"}
 									onClick={(e) => {
 										handleButtonClick(e)
 										setDifficulty("hard")
 									}}>
 									Hard
-								</OptionButton>
+								</EnhancedOptionButton>
 							</>
 						)}
 					</OptionGroup>
 					<OptionGroup>
-						<OptionButton
+						<EnhancedOptionButton
 							active={activeOptionGroup === "time"}
 							onClick={(e) => {
 								handleButtonClick(e)
@@ -1157,8 +1233,8 @@ const TypingTest = ({ onTestComplete }) => {
 								setTestType("time")
 							}}>
 							Time
-						</OptionButton>
-						<OptionButton
+						</EnhancedOptionButton>
+						<EnhancedOptionButton
 							active={activeOptionGroup === "words"}
 							onClick={(e) => {
 								handleButtonClick(e)
@@ -1166,80 +1242,80 @@ const TypingTest = ({ onTestComplete }) => {
 								setTestType("words")
 							}}>
 							Words
-						</OptionButton>
+						</EnhancedOptionButton>
 					</OptionGroup>
 
 					{activeOptionGroup === "time" && (
 						<OptionGroup noWrap expanded>
 							<OptionLabel>Duration:</OptionLabel>
-							<OptionButton
+							<EnhancedOptionButton
 								active={testDuration === 15}
 								onClick={(e) => {
 									handleButtonClick(e)
 									setTestDuration(15)
 								}}>
 								15s
-							</OptionButton>
-							<OptionButton
+							</EnhancedOptionButton>
+							<EnhancedOptionButton
 								active={testDuration === 30}
 								onClick={(e) => {
 									handleButtonClick(e)
 									setTestDuration(30)
 								}}>
 								30s
-							</OptionButton>
-							<OptionButton
+							</EnhancedOptionButton>
+							<EnhancedOptionButton
 								active={testDuration === 60}
 								onClick={(e) => {
 									handleButtonClick(e)
 									setTestDuration(60)
 								}}>
 								60s
-							</OptionButton>
-							<OptionButton
+							</EnhancedOptionButton>
+							<EnhancedOptionButton
 								onClick={(e) => {
 									handleButtonClick(e)
 									openCustomModal("time")
 								}}>
 								Custom
-							</OptionButton>
+							</EnhancedOptionButton>
 						</OptionGroup>
 					)}
 
 					{activeOptionGroup === "words" && (
 						<OptionGroup noWrap expanded>
 							<OptionLabel>Words:</OptionLabel>
-							<OptionButton
+							<EnhancedOptionButton
 								active={wordCount === 10}
 								onClick={(e) => {
 									handleButtonClick(e)
 									setWordCount(10)
 								}}>
 								10
-							</OptionButton>
-							<OptionButton
+							</EnhancedOptionButton>
+							<EnhancedOptionButton
 								active={wordCount === 25}
 								onClick={(e) => {
 									handleButtonClick(e)
 									setWordCount(25)
 								}}>
 								25
-							</OptionButton>
-							<OptionButton
+							</EnhancedOptionButton>
+							<EnhancedOptionButton
 								active={wordCount === 50}
 								onClick={(e) => {
 									handleButtonClick(e)
 									setWordCount(50)
 								}}>
 								50
-							</OptionButton>
-							<OptionButton
+							</EnhancedOptionButton>
+							<EnhancedOptionButton
 								onClick={(e) => {
 									handleButtonClick(e)
 									openCustomModal("words")
 								}}>
 								Custom
-							</OptionButton>
+							</EnhancedOptionButton>
 						</OptionGroup>
 					)}
 				</TestOptions>
