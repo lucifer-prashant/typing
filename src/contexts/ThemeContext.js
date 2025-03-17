@@ -117,11 +117,12 @@ export const ThemeProvider = ({ children }) => {
 
 	const [theme, setTheme] = useState(() => {
 		const savedTheme = localStorage.getItem("selectedTheme")
+		const oceanTheme = availableThemes.find((t) => t.name === "Ocean")
 		if (savedTheme) {
 			const foundTheme = availableThemes.find((t) => t.name === savedTheme)
-			return foundTheme || availableThemes[0]
+			return foundTheme || oceanTheme
 		}
-		return availableThemes[0]
+		return oceanTheme
 	})
 
 	// Apply theme to document body and CSS variables when theme changes

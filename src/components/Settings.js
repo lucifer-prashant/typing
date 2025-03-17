@@ -2,6 +2,7 @@ import React, { useRef, useEffect, useState } from "react"
 import styled, { keyframes } from "styled-components"
 import { useTheme } from "../contexts/ThemeContext"
 import { useAuth } from "../contexts/AuthContext"
+import { useUser } from "../contexts/UserContext"
 import {
 	FaPalette,
 	FaVolumeMute,
@@ -19,13 +20,15 @@ const SettingsContainer = styled.div`
 	border-radius: 20px;
 	padding: 30px;
 	width: 100%;
-	max-width: 600px;
+	max-width: 800px;
 	box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
 	backdrop-filter: blur(4px);
 	border: 1px solid ${(props) => props.theme.border};
 	position: relative;
 	color: ${(props) => props.theme.text};
 	transition: all 0.3s ease;
+	padding-bottom: 40px;
+	margin-bottom: 20px;
 `
 
 const BackButton = styled.button`
@@ -191,7 +194,7 @@ const ToggleButton = styled.button`
 `
 
 const Input = styled.input`
-	width: 100%;
+	width: 70%;
 	padding: 12px;
 	border: 1px solid ${(props) => props.theme.border};
 	border-radius: 8px;
@@ -277,6 +280,11 @@ const ColorSwatch = styled.div`
 	}
 `
 
+const bufferAnimation = keyframes`
+	0% { transform: rotate(0deg); }
+	100% { transform: rotate(360deg); }
+`
+
 const Button = styled.button`
 	background: ${(props) => props.theme.primary};
 	color: #ffffff;
@@ -290,6 +298,14 @@ const Button = styled.button`
 	align-items: center;
 	gap: 5px;
 	margin-top: 10px;
+	margin-left: 10px;
+	position: relative;
+	${(props) =>
+		props.$loading &&
+		`
+		pointer-events: none;
+		opacity: 0.7;
+	`}
 
 	&:hover {
 		background: ${(props) => {
@@ -303,6 +319,16 @@ const Button = styled.button`
 
 	&:active {
 		transform: translateY(0);
+	}
+
+	.loading-spinner {
+		width: 16px;
+		height: 16px;
+		border: 2px solid #ffffff;
+		border-top: 2px solid transparent;
+		border-radius: 50%;
+		animation: ${bufferAnimation} 0.8s linear infinite;
+		margin-left: 8px;
 	}
 `
 
@@ -339,6 +365,7 @@ const Tooltip = styled.div`
 const Settings = ({ onClose }) => {
 	const { theme, setTheme, availableThemes } = useTheme()
 	const { currentUser } = useAuth()
+	const { updateProfile } = useUser()
 	const [soundEnabled, setSoundEnabled] = useState(() => {
 		const savedSound = localStorage.getItem("soundEnabled")
 		return savedSound !== null ? savedSound === "true" : true
@@ -346,6 +373,7 @@ const Settings = ({ onClose }) => {
 	const [username, setUsername] = useState("")
 	const [error, setError] = useState("")
 	const [showSuccess, setShowSuccess] = useState(false)
+	const [isUpdating, setIsUpdating] = useState(false)
 	const containerRef = useRef(null)
 	const [currentThemeIndex, setCurrentThemeIndex] = useState(() => {
 		const index = availableThemes.findIndex((t) => t.name === theme?.name)
@@ -388,15 +416,28 @@ const Settings = ({ onClose }) => {
 		try {
 			setError("")
 			setShowSuccess(false)
+			setIsUpdating(true)
+
 			if (!username.trim()) {
 				setError("Username cannot be empty")
+				setIsUpdating(false)
 				return
 			}
-			await updateUserProfile(currentUser.uid, username.trim())
+
+			const updatedUsername = await updateUserProfile(
+				currentUser.uid,
+				username.trim()
+			)
+
+			// Update the profile with an object containing the username
+			updateProfile({ username: updatedUsername })
+
 			setShowSuccess(true)
-			setTimeout(() => setShowSuccess(false), 3000) // Hide success message after 3 seconds
+			setTimeout(() => setShowSuccess(false), 3000)
 		} catch (error) {
 			setError(error.message)
+		} finally {
+			setIsUpdating(false)
 		}
 	}
 
@@ -471,13 +512,19 @@ const Settings = ({ onClose }) => {
 					<SectionTitle>
 						<FaUser /> Username
 					</SectionTitle>
-					<Input
-						type="text"
-						value={username}
-						onChange={(e) => setUsername(e.target.value)}
-						onKeyPress={(e) => e.key === "Enter" && handleUsernameChange()}
-						placeholder="Enter your username"
-					/>
+					<div style={{ display: "flex", alignItems: "flex-start" }}>
+						<Input
+							type="text"
+							value={username}
+							onChange={(e) => setUsername(e.target.value)}
+							onKeyPress={(e) => e.key === "Enter" && handleUsernameChange()}
+							placeholder="Enter your username"
+						/>
+						<Button onClick={handleUsernameChange} $loading={isUpdating}>
+							Update
+							{isUpdating && <div className="loading-spinner" />}
+						</Button>
+					</div>
 					{error && <ErrorMessage>{error}</ErrorMessage>}
 					<SuccessMessage $visible={showSuccess}>
 						Username updated successfully!

@@ -10,6 +10,7 @@ import { FaKeyboard, FaUser, FaTrophy, FaCog } from "react-icons/fa"
 import Leaderboard from "./components/Leaderboard"
 import Settings from "./components/Settings"
 import { ThemeProvider } from "./contexts/ThemeContext"
+import { UserProvider, useUser } from "./contexts/UserContext"
 
 // Global style to ensure theme consistency throughout the app
 const GlobalStyle = createGlobalStyle`
@@ -175,6 +176,7 @@ const TopButton = styled.button`
 	gap: 8px;
 	backdrop-filter: blur(4px);
 	box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+	position: relative;
 
 	&:hover {
 		background-color: ${(props) => props.theme.primary};
@@ -191,11 +193,72 @@ const TopButton = styled.button`
 		font-size: 18px;
 	}
 `
+
+const DropdownMenu = styled.div`
+	position: absolute;
+	top: 100%;
+	right: 0;
+	margin-top: 8px;
+	background-color: ${(props) => props.theme.surface}CC;
+	border: 1px solid ${(props) => props.theme.border}40;
+	border-radius: 12px;
+	overflow: hidden;
+	box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+	backdrop-filter: blur(4px);
+	transform-origin: top right;
+	transform: ${(props) => (props.$show ? "scale(1)" : "scale(0.9)")};
+	opacity: ${(props) => (props.$show ? "1" : "0")};
+	visibility: ${(props) => (props.$show ? "visible" : "hidden")};
+	transition: all 0.2s ease;
+	z-index: 1000;
+`
+
+const DropdownItem = styled.button`
+	width: 100%;
+	padding: 12px 24px;
+	background: none;
+	border: none;
+	color: ${(props) => props.theme.text};
+	font-size: 14px;
+	cursor: pointer;
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	transition: all 0.2s ease;
+
+	&:hover {
+		background-color: ${(props) => props.theme.primary};
+		color: ${(props) => props.theme.text};
+	}
+
+	&:not(:last-child) {
+		border-bottom: 1px solid ${(props) => props.theme.border}40;
+	}
+`
 function AppContent() {
 	const [testResults, setTestResults] = useState(null)
 	const [currentView, setCurrentView] = useState("test")
 	const [showSettings, setShowSettings] = useState(false)
-	const { currentUser } = useAuth()
+	const [showDropdown, setShowDropdown] = useState(false)
+	const { currentUser, logout } = useAuth()
+	const { userProfile } = useUser()
+
+	useEffect(() => {
+		const handleClickOutside = (event) => {
+			if (!event.target.closest(".profile-dropdown")) {
+				setShowDropdown(false)
+			}
+		}
+
+		document.addEventListener("mousedown", handleClickOutside)
+		return () => document.removeEventListener("mousedown", handleClickOutside)
+	}, [])
+
+	useEffect(() => {
+		if (!currentUser) {
+			setCurrentView("login")
+		}
+	}, [currentUser])
 
 	useEffect(() => {
 		if (currentUser) {
@@ -306,16 +369,35 @@ function AppContent() {
 					</AppHeader>
 
 					<TopRightControls>
-						<TopButton onClick={() => setShowSettings(!showSettings)}>
-							<FaCog /> Settings
-						</TopButton>
 						{currentUser ? (
-							<TopButton onClick={() => setCurrentView("profile")}>
-								<FaUser />
-								{currentUser.email
-									? currentUser.email.split("@")[0]
-									: "Profile"}
-							</TopButton>
+							<div
+								style={{ position: "relative" }}
+								className="profile-dropdown">
+								<TopButton onClick={() => setShowDropdown(!showDropdown)}>
+									<FaUser />
+									{userProfile?.username || currentUser.email.split("@")[0]}
+								</TopButton>
+								<DropdownMenu $show={showDropdown}>
+									<DropdownItem
+										onClick={() => {
+											setShowSettings(true)
+											setShowDropdown(false)
+										}}>
+										<FaCog /> Settings
+									</DropdownItem>
+									<DropdownItem
+										onClick={async () => {
+											try {
+												await logout()
+												setShowDropdown(false)
+											} catch (error) {
+												console.error("Failed to log out", error)
+											}
+										}}>
+										<FaUser /> Logout
+									</DropdownItem>
+								</DropdownMenu>
+							</div>
 						) : (
 							<TopButton onClick={() => setCurrentView("login")}>
 								<FaUser /> Login
@@ -340,11 +422,13 @@ function App() {
 	React.useEffect(() => {
 		const handleTabDown = (e) => {
 			if (e.key === "Tab") {
+				e.preventDefault() // Prevent tab from leaving the website
 				tabPressed.current = true
 			}
 		}
 		const handleTabUp = (e) => {
 			if (e.key === "Tab") {
+				e.preventDefault() // Prevent tab from leaving the website
 				tabPressed.current = false
 			}
 		}
@@ -372,8 +456,10 @@ function App() {
 		<>
 			<AuthProvider>
 				<ThemeProvider>
-					<GlobalStyle />
-					<AppContent />
+					<UserProvider>
+						<GlobalStyle />
+						<AppContent />
+					</UserProvider>
 				</ThemeProvider>
 			</AuthProvider>
 		</>
