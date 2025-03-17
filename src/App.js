@@ -11,6 +11,9 @@ import Leaderboard from "./components/Leaderboard"
 import Settings from "./components/Settings"
 import { ThemeProvider } from "./contexts/ThemeContext"
 import { UserProvider, useUser } from "./contexts/UserContext"
+import CapsLockIndicator from "./components/CapsLockIndicator"
+import ThemeSelector from "./components/ThemeSelector"
+import Footer from "./components/Footer"
 
 // Global style to ensure theme consistency throughout the app
 const GlobalStyle = createGlobalStyle`
@@ -332,6 +335,7 @@ function AppContent() {
 
 	return (
 		<AppContainer>
+			<CapsLockIndicator />
 			{showSettings ? (
 				<Settings onClose={() => setShowSettings(false)} />
 			) : (
@@ -408,6 +412,7 @@ function AppContent() {
 					{renderContent()}
 				</>
 			)}
+			<Footer />
 		</AppContainer>
 	)
 }
@@ -458,6 +463,7 @@ function App() {
 				<ThemeProvider>
 					<UserProvider>
 						<GlobalStyle />
+						<ThemeSelector />
 						<AppContent />
 					</UserProvider>
 				</ThemeProvider>
