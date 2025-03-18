@@ -372,6 +372,22 @@ const Word = styled.span`
 	height: 42px;
 	align-items: center;
 	transition: opacity 0.3s ease;
+
+	${(props) =>
+		props.isCurrentWord &&
+		`
+		&::after {
+			content: '';
+			position: absolute;
+			right: -8px;
+			bottom: 0;
+			width: 12px;
+			height: 3px;
+			background-color: ${props.theme.primary};
+			animation: blink 1s infinite;
+			opacity: ${props.showSpaceCursor ? 1 : 0};
+		}
+	`}
 `
 
 const getCharacterStatus = (
@@ -424,8 +440,11 @@ const Character = styled.span`
 		width: 100%;
 		height: 3px;
 		background-color: ${(props) =>
-			props.isCursor ? props.theme.primary : "transparent"};
-		animation: ${(props) => (props.isCursor ? "blink 1s infinite" : "none")};
+			props.isCursor || props.isSpaceCursor
+				? props.theme.primary
+				: "transparent"};
+		animation: ${(props) =>
+			props.isCursor || props.isSpaceCursor ? "blink 1s infinite" : "none"};
 	}
 
 	@keyframes blink {
@@ -767,7 +786,7 @@ const TypingTest = ({ onTestComplete }) => {
 				// Clear error state if character is now correct
 				if (isCorrect) {
 					delete updated[currentWordIndex][currentInput.length]
-				} else if (newChar !== " ") {
+				} else {
 					// Store both the incorrect character and its position
 					updated[currentWordIndex][currentInput.length] = {
 						isError: true,
@@ -782,9 +801,8 @@ const TypingTest = ({ onTestComplete }) => {
 			if (soundEnabled && testActive) {
 				if (isCorrect && playSoundFn) {
 					playSoundFn() // Play correct character sound
-				} else if (!isCorrect && playWrongSound && newChar !== " ") {
-					// Play wrong character sound only if it's not a space
-					playWrongSound()
+				} else if (!isCorrect && playWrongSound) {
+					playWrongSound() // Play wrong character sound for all incorrect characters
 				}
 			}
 		}
