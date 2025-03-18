@@ -1285,7 +1285,7 @@ const TypingTest = ({ onTestComplete }) => {
 					<SpaceCursor
 						style={{
 							visibility:
-								currentInput.length === word.length ? "visible" : "hidden",
+								currentInput.length >= word.length ? "visible" : "hidden",
 						}}
 					/>
 				)}
