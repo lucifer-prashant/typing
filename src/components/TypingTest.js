@@ -759,21 +759,24 @@ const TypingTest = ({ onTestComplete }) => {
 			const isCorrect = newChar === expectedChar
 
 			// Update error map for the current character
-			if (!isCorrect && newChar !== " ") {
-				setErrorMap((prev) => {
-					const updated = { ...prev }
-					if (!updated[currentWordIndex]) {
-						updated[currentWordIndex] = {}
-					}
+			setErrorMap((prev) => {
+				const updated = { ...prev }
+				if (!updated[currentWordIndex]) {
+					updated[currentWordIndex] = {}
+				}
+				// Clear error state if character is now correct
+				if (isCorrect) {
+					delete updated[currentWordIndex][currentInput.length]
+				} else if (newChar !== " ") {
 					// Store both the incorrect character and its position
 					updated[currentWordIndex][currentInput.length] = {
 						isError: true,
 						typed: newChar,
 						expected: expectedChar,
 					}
-					return updated
-				})
-			}
+				}
+				return updated
+			})
 
 			// Play appropriate sound if enabled
 			if (soundEnabled && testActive) {
