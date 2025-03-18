@@ -368,7 +368,7 @@ const Settings = ({ onClose }) => {
 	const { updateProfile } = useUser()
 	const [soundEnabled, setSoundEnabled] = useState(() => {
 		const savedSound = localStorage.getItem("soundEnabled")
-		return savedSound !== null ? savedSound === "true" : true
+		return savedSound !== null ? savedSound === "true" : false
 	})
 	const [username, setUsername] = useState("")
 	const [error, setError] = useState("")

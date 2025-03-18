@@ -885,6 +885,13 @@ const TypingTest = ({ onTestComplete }) => {
 		}
 	}, [currentInput, currentWordIndex, words, testActive])
 	const handleKeyDown = (e) => {
+		// Handle Shift+Enter to restart test
+		if (e.key === "Enter" && e.shiftKey) {
+			e.preventDefault()
+			resetTest()
+			return
+		}
+
 		// Handle backspace key
 		if (e.key === "Backspace") {
 			if (soundEnabled && playBackspaceSound) {

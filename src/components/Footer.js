@@ -74,7 +74,7 @@ const Footer = () => (
 		<FooterContent>
 			<KeyCommand>
 				<KeyCombo>
-					<KeyCap>Tab</KeyCap>
+					<KeyCap>Shift</KeyCap>
 					<PlusSign>+</PlusSign>
 					<KeyCap>Enter</KeyCap>
 				</KeyCombo>

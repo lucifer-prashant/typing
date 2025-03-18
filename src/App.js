@@ -238,13 +238,14 @@ const DropdownItem = styled.button`
 		border-bottom: 1px solid ${(props) => props.theme.border}40;
 	}
 `
-function AppContent() {
+const AppContent = React.forwardRef((props, ref) => {
 	const [testResults, setTestResults] = useState(null)
 	const [currentView, setCurrentView] = useState("test")
 	const [showSettings, setShowSettings] = useState(false)
 	const [showDropdown, setShowDropdown] = useState(false)
 	const { currentUser, logout } = useAuth()
 	const { userProfile } = useUser()
+	const restartTrigger = React.useRef(0)
 
 	useEffect(() => {
 		const handleClickOutside = (event) => {
@@ -269,9 +270,6 @@ function AppContent() {
 		}
 	}, [currentUser])
 
-	const handleResetTest = () => {
-		window.location.reload()
-	}
 	const handleTestComplete = (results) => {
 		setTestResults(results)
 
@@ -282,27 +280,15 @@ function AppContent() {
 	}
 
 	const handleRestart = () => {
+		console.log("Restarting test...")
 		setTestResults(null)
 		restartTrigger.current += 1
 	}
 
-	const restartTrigger = React.useRef(0)
-
-	React.useEffect(() => {
-		const handleKeyDown = (e) => {
-			if (e.key === "Enter" && e.shiftKey) {
-				window.location.reload()
-			}
-			if (e.key === "Enter" && e.key === "Tab") {
-				handleRestart()
-			}
-			if (e.key === "Escape" && showSettings) {
-				setShowSettings(false)
-			}
-		}
-		window.addEventListener("keydown", handleKeyDown)
-		return () => window.removeEventListener("keydown", handleKeyDown)
-	}, [])
+	// Expose the restart function to parent components
+	React.useImperativeHandle(ref, () => ({
+		handleRestart,
+	}))
 
 	const renderContent = () => {
 		if (currentView === "login") {
@@ -334,7 +320,7 @@ function AppContent() {
 	}
 
 	return (
-		<AppContainer>
+		<AppContainer $isLeaderboard={currentView === "leaderboard"}>
 			<CapsLockIndicator />
 			{showSettings ? (
 				<Settings onClose={() => setShowSettings(false)} />
@@ -412,50 +398,56 @@ function AppContent() {
 					{renderContent()}
 				</>
 			)}
-			<Footer />
+			{currentView === "test" && <Footer />}
 		</AppContainer>
 	)
-}
+})
 
 function App() {
-	const tabPressed = React.useRef(false)
+	const appContentRef = React.useRef(null)
+	const [isTabPressed, setIsTabPressed] = React.useState(false)
 
-	const handleResetTest = () => {
-		window.location.reload()
-	}
-
+	// Setup a direct key event handler for the Tab+Enter combination
 	React.useEffect(() => {
-		const handleTabDown = (e) => {
+		const handleKeyDown = (e) => {
+			// Track Tab key state
 			if (e.key === "Tab") {
-				e.preventDefault() // Prevent tab from leaving the website
-				tabPressed.current = true
+				e.preventDefault() // Prevent default Tab behavior
+				setIsTabPressed(true)
 			}
-		}
-		const handleTabUp = (e) => {
-			if (e.key === "Tab") {
-				e.preventDefault() // Prevent tab from leaving the website
-				tabPressed.current = false
-			}
-		}
-		document.addEventListener("keydown", handleTabDown)
-		document.addEventListener("keyup", handleTabUp)
-		return () => {
-			document.removeEventListener("keydown", handleTabDown)
-			document.removeEventListener("keyup", handleTabUp)
-		}
-	}, [])
 
-	useEffect(() => {
-		const handleRestartShortcut = (e) => {
-			if (e.key === "Enter" && tabPressed.current) {
-				handleResetTest()
+			// Handle Tab+Enter combination
+			if (e.key === "Enter" && isTabPressed) {
 				e.preventDefault()
+				console.log("Tab+Enter detected, restarting test")
+				if (appContentRef.current) {
+					appContentRef.current.handleRestart()
+				}
+			}
+
+			// Handle Escape key for settings
+			if (e.key === "Escape") {
+				// Any escape handling can go here
 			}
 		}
 
-		document.addEventListener("keydown", handleRestartShortcut)
-		return () => document.removeEventListener("keydown", handleRestartShortcut)
-	}, [])
+		const handleKeyUp = (e) => {
+			// Reset Tab key state
+			if (e.key === "Tab") {
+				setIsTabPressed(false)
+			}
+		}
+
+		// Add global event listeners
+		document.addEventListener("keydown", handleKeyDown)
+		document.addEventListener("keyup", handleKeyUp)
+
+		// Cleanup when component unmounts
+		return () => {
+			document.removeEventListener("keydown", handleKeyDown)
+			document.removeEventListener("keyup", handleKeyUp)
+		}
+	}, [isTabPressed]) // Make sure this effect runs whenever isTabPressed changes
 
 	return (
 		<>
@@ -464,7 +456,7 @@ function App() {
 					<UserProvider>
 						<GlobalStyle />
 						<ThemeSelector />
-						<AppContent />
+						<AppContent ref={appContentRef} />
 					</UserProvider>
 				</ThemeProvider>
 			</AuthProvider>
