@@ -374,10 +374,42 @@ const Word = styled.span`
 	transition: opacity 0.3s ease;
 `
 
+const getCharacterStatus = (
+	wordIndex,
+	charIndex,
+	currentWordIndex,
+	currentInput,
+	errorMap
+) => {
+	// If this is a character in a previous word
+	if (wordIndex < currentWordIndex) {
+		// Check if this character had an error
+		return errorMap[wordIndex]?.[charIndex]?.isError ? "incorrect" : "correct"
+	}
+
+	// If this is the current word
+	if (wordIndex === currentWordIndex) {
+		// If we haven't typed this character yet
+		if (charIndex >= currentInput.length) {
+			return "untyped"
+		}
+		// If this character has an error
+		if (errorMap[wordIndex]?.[charIndex]?.isError) {
+			return "incorrect"
+		}
+		// If we've typed this character correctly
+		return "correct"
+	}
+
+	// Future words
+	return "untyped"
+}
+
 const Character = styled.span`
 	color: ${(props) => {
 		if (props.status === "correct") return props.theme.success + "CC"
-		if (props.status === "incorrect") return props.theme.error + "CC"
+		if (props.status === "incorrect" || props.hasError)
+			return props.theme.error + "CC"
 		if (props.status === "current") return props.theme.text
 		return props.theme.text + "40"
 	}};
@@ -726,6 +758,23 @@ const TypingTest = ({ onTestComplete }) => {
 			// Determine if the character is correct or incorrect
 			const isCorrect = newChar === expectedChar
 
+			// Update error map for the current character
+			if (!isCorrect && newChar !== " ") {
+				setErrorMap((prev) => {
+					const updated = { ...prev }
+					if (!updated[currentWordIndex]) {
+						updated[currentWordIndex] = {}
+					}
+					// Store both the incorrect character and its position
+					updated[currentWordIndex][currentInput.length] = {
+						isError: true,
+						typed: newChar,
+						expected: expectedChar,
+					}
+					return updated
+				})
+			}
+
 			// Play appropriate sound if enabled
 			if (soundEnabled && testActive) {
 				if (isCorrect && playSoundFn) {
@@ -915,6 +964,16 @@ const TypingTest = ({ onTestComplete }) => {
 				// Move back to the previous word
 				setCurrentWordIndex(currentWordIndex - 1)
 				setCurrentInput(previousWord)
+
+				// Keep the error map for the previous word
+				setErrorMap((prev) => {
+					const updated = { ...prev }
+					// Ensure we maintain the error state for the previous word
+					if (!updated[currentWordIndex - 1]) {
+						updated[currentWordIndex - 1] = {}
+					}
+					return updated
+				})
 
 				// Remove the characters from the typed characters array
 				setTypedCharacters((chars) => {
@@ -1179,6 +1238,40 @@ const TypingTest = ({ onTestComplete }) => {
 		setIsFocused(true)
 	}
 
+	const renderWord = (word, index) => {
+		return (
+			<Word key={`${index}-${word}`}>
+				{word.split("").map((char, charIndex) => {
+					const status = getCharacterStatus(
+						index,
+						charIndex,
+						currentWordIndex,
+						currentInput,
+						errorMap
+					)
+					return (
+						<Character
+							key={charIndex}
+							status={status}
+							isCursor={
+								index === currentWordIndex && charIndex === currentInput.length
+							}>
+							{char}
+						</Character>
+					)
+				})}
+				{index === currentWordIndex && (
+					<SpaceCursor
+						style={{
+							visibility:
+								currentInput.length === word.length ? "visible" : "hidden",
+						}}
+					/>
+				)}
+			</Word>
+		)
+	}
+
 	return (
 		<TypingTestContainer className="typing-test-container">
 			<TestHeader>
@@ -1342,52 +1435,7 @@ const TypingTest = ({ onTestComplete }) => {
 					ref={textDisplayRef}
 					className="text-display"
 					style={{ transform: `translateY(-${textOffset}px)` }}>
-					{words.map((word, index) => (
-						<Word key={index} style={{ opacity: 1 }}>
-							{word.split("").map((char, charIndex) => {
-								let status = "default"
-								const isLastCharInWord = charIndex === word.length - 1
-								const wordComplete = index < currentWordIndex
-
-								// Determine if this character should have the cursor
-								const isCursor =
-									index === currentWordIndex &&
-									charIndex === currentInput.length &&
-									currentInput.length < word.length // Only show character cursor if we're not at the end of the word
-
-								if (index === currentWordIndex) {
-									if (charIndex < currentInput.length) {
-										status =
-											currentInput[charIndex] === char ? "correct" : "incorrect"
-									} else if (charIndex === currentInput.length) {
-										status = "current"
-									}
-								} else if (index < currentWordIndex) {
-									const wordStart = typedCharacters.findIndex(
-										(char) => char.wordIndex === index
-									)
-									const charData = typedCharacters[wordStart + charIndex]
-									if (charData) {
-										status = charData.typed === char ? "correct" : "incorrect"
-									}
-								}
-
-								return (
-									<Character
-										key={charIndex}
-										status={status}
-										isLastCharInWord={isLastCharInWord}
-										wordComplete={wordComplete}
-										isCursor={isCursor}>
-										{char}
-									</Character>
-								)
-							})}
-							{/* Show space cursor when at the end of a word */}
-							{index === currentWordIndex &&
-								currentInput.length === word.length && <SpaceCursor />}
-						</Word>
-					))}
+					{words.map((word, index) => renderWord(word, index))}
 				</TextDisplay>
 			</TextDisplayContainer>
 
