@@ -473,7 +473,7 @@ function App() {
 						<GlobalStyle />
 						<ThemeSelector />
 						<AppContent ref={appContentRef} />
-						;<Analytics />
+						<Analytics />
 					</UserProvider>
 				</ThemeProvider>
 			</AuthProvider>
