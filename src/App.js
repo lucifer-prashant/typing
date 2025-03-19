@@ -418,7 +418,6 @@ const AppContent = React.forwardRef((props, ref) => {
 })
 
 function App() {
-	;<Analytics />
 	const projectId = "qqpfanzza1"
 	Clarity.init(projectId)
 	const appContentRef = React.useRef(null)
@@ -474,6 +473,7 @@ function App() {
 						<GlobalStyle />
 						<ThemeSelector />
 						<AppContent ref={appContentRef} />
+						;<Analytics />
 					</UserProvider>
 				</ThemeProvider>
 			</AuthProvider>
