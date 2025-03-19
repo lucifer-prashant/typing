@@ -541,8 +541,17 @@ const TypingTest = ({ onTestComplete }) => {
 	const [customInputFocused, setCustomInputFocused] = useState(false)
 	const [soundEnabled, setSoundEnabled] = useState(() => {
 		const savedSound = localStorage.getItem("soundEnabled")
-		return savedSound !== null ? savedSound === "true" : true
+		return savedSound !== null ? savedSound === "true" : false
 	})
+
+	useEffect(() => {
+		const handleStorageChange = () => {
+			const savedSound = localStorage.getItem("soundEnabled")
+			setSoundEnabled(savedSound === "true")
+		}
+		window.addEventListener("storage", handleStorageChange)
+		return () => window.removeEventListener("storage", handleStorageChange)
+	}, [])
 
 	const [currentWPM, setCurrentWPM] = useState(0)
 	const [currentAccuracy, setCurrentAccuracy] = useState(0)

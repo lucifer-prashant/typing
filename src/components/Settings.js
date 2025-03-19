@@ -20,7 +20,7 @@ const SettingsContainer = styled.div`
 	border-radius: 20px;
 	padding: 30px;
 	width: 100%;
-	max-width: 800px;
+	max-width: 1200px;
 	box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
 	backdrop-filter: blur(4px);
 	border: 1px solid ${(props) => props.theme.border};
@@ -194,7 +194,7 @@ const ToggleButton = styled.button`
 `
 
 const Input = styled.input`
-	width: 70%;
+	width: 100%;
 	padding: 12px;
 	border: 1px solid ${(props) => props.theme.border};
 	border-radius: 8px;
@@ -368,8 +368,19 @@ const Settings = ({ onClose }) => {
 	const { updateProfile } = useUser()
 	const [soundEnabled, setSoundEnabled] = useState(() => {
 		const savedSound = localStorage.getItem("soundEnabled")
-		return savedSound !== null ? savedSound === "true" : false
+		return savedSound === "true"
 	})
+
+	// Set initial sound preference in localStorage if not already set
+	useEffect(() => {
+		if (localStorage.getItem("soundEnabled") === null) {
+			localStorage.setItem("soundEnabled", "false")
+		}
+
+		// Dispatch storage event to notify other components
+		const event = new Event("storage")
+		window.dispatchEvent(event)
+	}, [])
 	const [username, setUsername] = useState("")
 	const [error, setError] = useState("")
 	const [showSuccess, setShowSuccess] = useState(false)

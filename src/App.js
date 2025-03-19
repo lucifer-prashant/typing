@@ -355,6 +355,11 @@ const AppContent = React.forwardRef((props, ref) => {
 									<FaUser />
 								</NavButton>
 							)}
+							<NavButton
+								$active={currentView === "settings"}
+								onClick={() => setShowSettings(true)}>
+								<FaCog />
+							</NavButton>
 						</NavBar>
 					</AppHeader>
 
