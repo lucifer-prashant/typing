@@ -4,7 +4,7 @@ import { FaLock } from "react-icons/fa"
 
 const IndicatorModal = styled.div`
 	position: fixed;
-	top: 20px;
+	top: 490px;
 	left: 50%;
 	transform: translateX(-50%);
 	background: ${(props) => props.theme.surface}CC;

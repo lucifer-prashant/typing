@@ -407,6 +407,13 @@ const getCharacterStatus = (
 	if (wordIndex === currentWordIndex) {
 		// If we haven't typed this character yet
 		if (charIndex >= currentInput.length) {
+			// Only show error if we've skipped this character
+			if (
+				errorMap[wordIndex]?.[charIndex]?.isError &&
+				charIndex < currentInput.length
+			) {
+				return "incorrect"
+			}
 			return "untyped"
 		}
 		// If this character has an error
@@ -1043,6 +1050,23 @@ const TypingTest = ({ onTestComplete }) => {
 
 			setLastSpaceTime(currentTime)
 
+			// Mark all remaining characters as errors when skipping with space
+			setErrorMap((prev) => {
+				const updated = { ...prev }
+				if (!updated[currentWordIndex]) {
+					updated[currentWordIndex] = {}
+				}
+				// Mark all untyped characters as errors
+				for (let i = typedWord.length; i < currentWord.length; i++) {
+					updated[currentWordIndex][i] = {
+						isError: true,
+						typed: "",
+						expected: currentWord[i],
+					}
+				}
+				return updated
+			})
+
 			// Record typed characters for the current word
 			for (let i = 0; i < Math.max(typedWord.length, currentWord.length); i++) {
 				const typed = typedWord[i] || ""
@@ -1061,12 +1085,6 @@ const TypingTest = ({ onTestComplete }) => {
 
 				if (typed !== actual) {
 					setErrorCount((prev) => prev + 1)
-					if (typed) {
-						setErrorMap((prev) => ({
-							...prev,
-							[typed]: (prev[typed] || 0) + 1,
-						}))
-					}
 				}
 			}
 
