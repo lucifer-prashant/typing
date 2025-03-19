@@ -14,6 +14,8 @@ import { UserProvider, useUser } from "./contexts/UserContext"
 import CapsLockIndicator from "./components/CapsLockIndicator"
 import ThemeSelector from "./components/ThemeSelector"
 import Footer from "./components/Footer"
+import { Analytics } from "@vercel/analytics/react"
+import Clarity from "@microsoft/clarity"
 
 // Global style to ensure theme consistency throughout the app
 const GlobalStyle = createGlobalStyle`
@@ -416,6 +418,9 @@ const AppContent = React.forwardRef((props, ref) => {
 })
 
 function App() {
+	;<Analytics />
+	const projectId = "qqpfanzza1"
+	Clarity.init(projectId)
 	const appContentRef = React.useRef(null)
 	const [isTabPressed, setIsTabPressed] = React.useState(false)
 
