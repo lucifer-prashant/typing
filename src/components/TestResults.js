@@ -162,7 +162,9 @@ const TestResults = ({
 	return (
 		<ResultsContainer>
 			<HeaderContainer>
-				<ResultsHeader>Test Results</ResultsHeader>
+				<ResultsHeader>
+					Test Results {accuracy < 75 && "(Invalid Test)"}
+				</ResultsHeader>
 				<RestartButton onClick={onRestart}>Restart Test</RestartButton>
 			</HeaderContainer>
 
@@ -178,8 +180,16 @@ const TestResults = ({
 				</ResultCard>
 
 				<ResultCard>
-					<ResultLabel>Accuracy</ResultLabel>
-					<ResultValue>{accuracy}%</ResultValue>
+					<ResultLabel>Accuracy {accuracy < 75 && "(Too Low)"}</ResultLabel>
+					<ResultValue
+						style={{
+							color:
+								accuracy < 75
+									? (props) => props.theme.error
+									: (props) => props.theme.primary,
+						}}>
+						{accuracy}%
+					</ResultValue>
 				</ResultCard>
 
 				<ResultCard>

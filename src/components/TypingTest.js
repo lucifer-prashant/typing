@@ -763,7 +763,10 @@ const TypingTest = ({ onTestComplete }) => {
 
 	const saveResultsToFirebase = async (results) => {
 		try {
+			// Only save to leaderboard if accuracy is 75% or higher
+			const isValidTest = results.accuracy >= 75
 			await addDoc(collection(db, "tests"), {
+				isValid: isValidTest,
 				username:
 					currentUser.displayName ||
 					(currentUser.email ? currentUser.email.split("@")[0] : "Anonymous"),

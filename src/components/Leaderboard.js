@@ -49,7 +49,7 @@ const LeaderboardTable = styled.div`
 const LeaderboardRow = styled.div`
 	display: grid;
 	grid-template-columns: 60px 1fr 100px 100px;
-	padding: 6px;
+	padding: 6.5px;
 	margin-bottom: 2px;
 	background: ${(props) =>
 		props.$rank <= 3 ? "rgba(100, 108, 255, 0.1)" : "rgba(26, 26, 26, 0.5)"};
@@ -169,8 +169,8 @@ function Leaderboard() {
 					const data = doc.data()
 					const userId = data.userId
 
-					// Skip entries without userId
-					if (!userId) continue
+					// Skip entries without userId or with accuracy below 75%
+					if (!userId || data.accuracy < 75) continue
 
 					// If we haven't seen this user, or if this score is better than their previous best
 					if (
