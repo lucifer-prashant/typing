@@ -222,8 +222,61 @@ function Leaderboard() {
 		setCurrentPage(newPage)
 	}
 
+	const LoadingContainer = styled.div`
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		height: 100%;
+	`
+
+	const LoadingText = styled.div`
+		color: ${(props) => props.theme.primary};
+		font-size: 1.5rem;
+		animation: pulse 1.5s ease-in-out infinite;
+		text-shadow: 0 0 10px ${(props) => props.theme.primary}40;
+
+		@keyframes pulse {
+			0% {
+				opacity: 0.6;
+				transform: scale(0.98);
+			}
+			50% {
+				opacity: 1;
+				transform: scale(1);
+			}
+			100% {
+				opacity: 0.6;
+				transform: scale(0.98);
+			}
+		}
+	`
+
+	const LoadingSpinner = styled.div`
+		width: 40px;
+		height: 40px;
+		border: 3px solid ${(props) => props.theme.primary}40;
+		border-top-color: ${(props) => props.theme.primary};
+		border-radius: 50%;
+		animation: spin 1s linear infinite;
+		margin-bottom: 15px;
+
+		@keyframes spin {
+			to {
+				transform: rotate(360deg);
+			}
+		}
+	`
+
 	if (loading) {
-		return <LeaderboardContainer>Loading...</LeaderboardContainer>
+		return (
+			<LeaderboardContainer>
+				<LoadingContainer>
+					<LoadingSpinner />
+					<LoadingText>Loading Leaderboard...</LoadingText>
+				</LoadingContainer>
+			</LeaderboardContainer>
+		)
 	}
 
 	return (

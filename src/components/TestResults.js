@@ -163,7 +163,7 @@ const TestResults = ({
 		<ResultsContainer>
 			<HeaderContainer>
 				<ResultsHeader>
-					Test Results {accuracy < 75 && "(Invalid Test)"}
+					Test Results {accuracy < 60 && "(Invalid Test)"}
 				</ResultsHeader>
 				<RestartButton onClick={onRestart}>Restart Test</RestartButton>
 			</HeaderContainer>

@@ -577,7 +577,9 @@ const TypingTest = ({ onTestComplete }) => {
 			createAudioPool("/sounds/mixkit-typewriter-soft-hit-1366.wav")
 		)
 
-		setPlayWrongSound(() => createAudioPool("/sounds/punch-140236.mp3")) // Ensure this path is correct
+		setPlayWrongSound(() =>
+			createAudioPool("/sounds/cartoon-slap-2-189831.mp3")
+		) // Ensure this path is correct
 
 		// Clean up function
 		return () => {
