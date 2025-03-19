@@ -403,7 +403,7 @@ const AppContent = React.forwardRef((props, ref) => {
 					{renderContent()}
 				</>
 			)}
-			{currentView === "test" && <Footer />}
+			{currentView === "test" && !showSettings && <Footer />}
 		</AppContainer>
 	)
 })

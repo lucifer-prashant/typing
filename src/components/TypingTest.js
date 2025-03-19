@@ -815,10 +815,10 @@ const TypingTest = ({ onTestComplete }) => {
 
 			// Play appropriate sound if enabled
 			if (soundEnabled && testActive) {
-				if (isCorrect && playSoundFn) {
-					playSoundFn() // Play correct character sound
-				} else if (!isCorrect && playWrongSound) {
-					playWrongSound() // Play wrong character sound for all incorrect characters
+				if ((isCorrect || newChar === " ") && playSoundFn) {
+					playSoundFn() // Play correct character sound or spacebar
+				} else if (!isCorrect && newChar !== " " && playWrongSound) {
+					playWrongSound() // Play wrong character sound for incorrect characters except space
 				}
 			}
 		}
