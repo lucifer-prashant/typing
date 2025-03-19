@@ -95,15 +95,11 @@ const Title = styled.h1`
 	margin-bottom: 10px;
 	font-weight: 800;
 	letter-spacing: 2px;
-	align-self: flex-start; // Add this to left-align within the flex container
-	// Remove width: 100%
-
-	// text-align: left; // This is redundant with align-self: flex-start
-
+	align-self: flex-start;
 	font-family: "JetBrains Mono";
-
 	transform: perspective(500px) translateZ(0);
 	transition: all 0.3s ease;
+	cursor: pointer;
 
 	&:hover {
 		transform: perspective(500px) translateZ(10px);
@@ -327,7 +323,18 @@ const AppContent = React.forwardRef((props, ref) => {
 			) : (
 				<>
 					<AppHeader>
-						<Title>Speed Typer</Title>
+						<Title
+							onClick={() => {
+								if (testResults) {
+									setTestResults(null)
+								}
+								if (currentView !== "test") {
+									setCurrentView("test")
+								}
+								handleRestart()
+							}}>
+							Speed Typer
+						</Title>
 						{/* <Subtitle>
 							Test and improve your typing speed with common English words
 						</Subtitle> */}
