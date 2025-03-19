@@ -118,8 +118,7 @@ const TestResults = ({
 	rawWpm,
 	accuracy,
 	charactersTyped,
-	errorCount,
-	errorMap,
+
 	testDuration,
 	onRestart,
 }) => {

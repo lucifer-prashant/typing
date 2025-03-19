@@ -918,10 +918,16 @@ const TypingTest = ({ onTestComplete }) => {
 					if (typed !== actual) {
 						setErrorCount((prev) => prev + 1)
 						if (typed) {
-							setErrorMap((prev) => ({
-								...prev,
-								[typed]: (prev[typed] || 0) + 1,
-							}))
+							setErrorMap((prev) => {
+								const updated = { ...prev }
+								if (!updated[actual]) {
+									updated[actual] = { count: 0, typedAs: {} }
+								}
+								updated[actual].count = (updated[actual].count || 0) + 1
+								updated[actual].typedAs[typed] =
+									(updated[actual].typedAs[typed] || 0) + 1
+								return updated
+							})
 						}
 					}
 				}

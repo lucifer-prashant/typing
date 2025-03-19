@@ -214,8 +214,7 @@ const UserProfile = () => {
 				const q = query(
 					testsRef,
 					where("userId", "==", currentUser.uid),
-					orderBy("timestamp", "desc"),
-					limit(20)
+					orderBy("timestamp", "desc")
 				)
 
 				const querySnapshot = await getDocs(q)
@@ -445,12 +444,12 @@ const UserProfile = () => {
 
 					{sortedErrors.length > 0 && (
 						<>
-							<ChartContainer style={{ height: "300px" }}>
+							{/* <ChartContainer style={{ height: "300px" }}>
 								<ChartTitle>Most Frequent Errors</ChartTitle>
 								<Bar data={errorChartData} options={chartOptions} />
-							</ChartContainer>
+							</ChartContainer> */}
 
-							<ErrorsContainer>
+							{/* <ErrorsContainer>
 								<ErrorsTitle>Top Error Characters</ErrorsTitle>
 								<ErrorsList>
 									{sortedErrors.map(([char, count], index) => (
@@ -460,7 +459,7 @@ const UserProfile = () => {
 										</ErrorItem>
 									))}
 								</ErrorsList>
-							</ErrorsContainer>
+							</ErrorsContainer> */}
 						</>
 					)}
 				</>
